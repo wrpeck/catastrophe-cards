@@ -1,0 +1,146 @@
+[
+  {
+    "id": "ind-1",
+    "displayName": "Scavenging",
+    "flavor": "You scrounge through the rubble of abandoned homes in the neighborhood and find some canned goods.",
+    "effect": "Collect 1 resource.",
+    "quantity": 5,
+    "type": "good"
+  },
+  {
+    "id": "ind-2",
+    "displayName": "Exhaustion",
+    "flavor": "The travel is taking a toll on you.",
+    "effect": "Lose 1 resource.",
+    "quantity": 5,
+    "type": "bad"
+  },
+  {
+    "id": "ind-3",
+    "displayName": "Convenience Store Scraps",
+    "flavor": "You find an untouched back room in a looted convenience store.",
+    "effect": "Collect 2 resources.",
+    "quantity": 4,
+    "type": "good"
+  },
+  {
+    "id": "ind-4",
+    "displayName": "Flood",
+    "flavor": "The rains came again, and your camp was flooded.",
+    "effect": "Lose 2 resources.",
+    "quantity": 4,
+    "type": "bad"
+  },
+  {
+    "id": "ind-5",
+    "displayName": "Good Hunting",
+    "flavor": "They thought the deer were gone, but you found one deep in the woods.",
+    "effect": "Collect 3 resources.",
+    "quantity": 3,
+    "type": "good"
+  },
+  {
+    "id": "ind-6",
+    "displayName": "Thieves",
+    "flavor": "Your camp was raided while you were searching for medical supplies.",
+    "effect": "Lose 3 resources.",
+    "quantity": 3,
+    "type": "bad"
+  },
+  {
+    "id": "ind-7",
+    "displayName": "Not Alone",
+    "flavor": "You found a radio signal that provided coordinates to a cache of supplies.",
+    "effect": "Collect 4 resources.",
+    "quantity": 2,
+    "type": "good"
+  },
+  {
+    "id": "ind-8",
+    "displayName": "Things Are Worse",
+    "flavor": "The fear and anxiety of surviving is intolerable, and you spend several days unable to leave camp.",
+    "effect": "Lose 4 resources.",
+    "quantity": 2,
+    "type": "bad"
+  },
+  {
+    "id": "ind-9",
+    "displayName": "Prepper's Shelter",
+    "flavor": "Somehow, you found a bunker in the woods, filled with supplies.",
+    "effect": "Collect 5 resources.",
+    "quantity": 1,
+    "type": "good"
+  },
+  {
+    "id": "ind-10",
+    "displayName": "The Illness Hits",
+    "flavor": "A fever takes you down hard, and you barely survive.",
+    "effect": "Lose 5 resources.",
+    "quantity": 1,
+    "type": "bad"
+  },
+  {
+    "id": "ind-11",
+    "displayName": "A Grim Education",
+    "flavor": "You hate it, but you're starting to understand how to survive.",
+    "effect": "Gain a trait.",
+    "quantity": 3,
+    "type": "good"
+  },
+  {
+    "id": "ind-12",
+    "displayName": "Useless Skills",
+    "flavor": "The things you once thought were useful are now useless.",
+    "effect": "Lose a trait.",
+    "quantity": 3,
+    "type": "bad"
+  },
+  {
+    "id": "ind-13",
+    "displayName": "A Burst of Motivation",
+    "flavor": "Is it fear or hope? Does it matter?",
+    "effect": "Collect resources twice this turn.",
+    "quantity": 4,
+    "type": "good"
+  },
+  {
+    "id": "ind-14",
+    "displayName": "Barren Lands",
+    "flavor": "You try to find food and water, but this place is dead and empty.",
+    "effect": "Do not collect any resources next turn.",
+    "quantity": 4,
+    "type": "bad"
+  },
+  {
+    "id": "ind-15",
+    "displayName": "The Things You've Seen",
+    "flavor": "You wake up in a daze. Something horrible has happened, but you don't remember what it was.",
+    "effect": "Lose a turn.",
+    "quantity": 2,
+    "type": "bad"
+  },
+  {
+    "id": "ind-16",
+    "displayName": "Hope Against All Odds",
+    "flavor": "All around you, people are finding ways survive.",
+    "effect": "Increment the Civilization counter.",
+    "quantity": 1,
+    "type": "good"
+  },
+  {
+    "id": "ind-17",
+    "displayName": "The Worst of Humanity",
+    "flavor": "Things aren't getting better.",
+    "effect": "Increase the Extinction Counter by 1.",
+    "quantity": 1,
+    "type": "bad"
+  },
+  {
+    "id": "ind-18",
+    "displayName": "Fear of the Unknown",
+    "flavor": "You hide from the world, but somehow, violence still finds you.",
+    "effect": "Next round, draw an extra event card.",
+    "quantity": 2,
+    "type": "bad"
+  }
+]

@@ -1,0 +1,98 @@
+[
+  {
+    "id": "desp-1",
+    "displayName": "Take from the Weak",
+    "cost": "+1 Extinction Point",
+    "effect": "+8 Resources",
+    "flavor": "You could do what's right, or you could be alive.",
+    "quantity": 2
+  },
+  {
+    "id": "desp-2",
+    "displayName": "Leave Them for Dead",
+    "cost": "+2 Extinction Points",
+    "effect": "+15 Resources",
+    "flavor": "In your dreams, you made different choices.",
+    "quantity": 2
+  },
+  {
+    "id": "desp-3",
+    "displayName": "Cannibalism",
+    "cost": "-1 Civilization Point",
+    "effect": "+8 Resources",
+    "flavor": "Their bodies, given for you. Take and eat in remembrance.",
+    "quantity": 2
+  },
+  {
+    "id": "desp-4",
+    "displayName": "Just a Little Longer",
+    "cost": "-1 Extinction Point",
+    "effect": "-1 Civilization Point",
+    "flavor": "You can ask for forgiveness when it's done.",
+    "quantity": 5
+  },
+  {
+    "id": "desp-5",
+    "displayName": "Torture",
+    "cost": "-2 Civilization Point",
+    "effect": "+15 Resources",
+    "flavor": "Don't think too hard about what you've done.",
+    "quantity": 2
+  },
+  {
+    "id": "desp-6",
+    "displayName": "Trim the Fat",
+    "cost": "-1 Community Member",
+    "effect": "+8 Resources",
+    "flavor": "You can't carry dead weight. You can barely carry yourself.",
+    "quantity": 2
+  },
+  {
+    "id": "desp-7",
+    "displayName": "Big Damn Heroes",
+    "cost": "Disband Community",
+    "effect": "+2 Civilization Points",
+    "flavor": "There are some things you don't compromise on.",
+    "quantity": 2
+  },
+  {
+    "id": "desp-8",
+    "displayName": "Risk it All",
+    "cost": "-40 Resources",
+    "effect": "+3 Civilization Points, -3 Extinction Points",
+    "flavor": "Don't go quietly. Swing big and die trying.",
+    "quantity": 1
+  },
+  {
+    "id": "desp-9",
+    "displayName": "Starve Together",
+    "cost": "x2 Community Maintenance Cost (2 rounds)",
+    "effect": "+1 Civilization Point per round",
+    "flavor": "You don't turn away children here.",
+    "quantity": 2
+  },
+  {
+    "id": "desp-10",
+    "displayName": "A Matter of Time",
+    "cost": "Disband Community",
+    "effect": "+1 Civilization Point",
+    "flavor": "You knew it wouldn't last. Good folk don't stick around.",
+    "quantity": 2
+  },
+  {
+    "id": "desp-11",
+    "displayName": "Stalemate",
+    "cost": "Disband Community",
+    "effect": "-1 Extinction Point",
+    "flavor": "It ain't quite peace, but nobody's dead.",
+    "quantity": 2
+  },
+  {
+    "id": "desp-12",
+    "displayName": "Turn the Tides",
+    "cost": "+2 Extinction Points",
+    "effect": "+3 Civilization Points",
+    "flavor": "You can't wait for it to get better. You make it better.",
+    "quantity": 1
+  }
+]

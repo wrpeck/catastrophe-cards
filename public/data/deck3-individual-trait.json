@@ -1,0 +1,72 @@
+[
+  {
+    "id": "deck3-1",
+    "displayName": "Survivalist",
+    "flavor": "It was weeks before you noticed the world was ending.",
+    "effect": "Add +1 to every resource roll. When you are not in a community, roll twice and keep the higher result.",
+    "quantity": 5
+  },
+  {
+    "id": "deck3-2",
+    "displayName": "Paranoid",
+    "flavor": "Trust costs too much now. You're not taking any chances.",
+    "effect": "You keep your resources when you join a community, and you may continue to roll for individual resources while in a community.",
+    "quantity": 5
+  },
+  {
+    "id": "deck3-3",
+    "displayName": "Lucky",
+    "flavor": "Seems luck is in short supply at the end of the world for everyone but you.",
+    "effect": "You may reroll all 0s and 1s on resource rolls. You must keep the result of the reroll.",
+    "quantity": 5
+  },
+  {
+    "id": "deck3-4",
+    "displayName": "Charasmatic",
+    "flavor": "People need leaders like they need food. Sometimes more.",
+    "effect": "You do not have to spend resources to join a community.",
+    "quantity": 5
+  },
+  {
+    "id": "deck3-5",
+    "displayName": "Cutthroat",
+    "flavor": "You've got the stomach for doing what needs done.",
+    "effect": "Community resource rolls get +3. You may take up to half of a community's resources when you leave for any reason.",
+    "quantity": 5
+  },
+  {
+    "id": "deck3-6",
+    "displayName": "Helpless",
+    "flavor": "Everyone's helpless eventually. You're just the first to admit it.",
+    "effect": "Any community you join counts as +1 member larger for all purposes.",
+    "quantity": 5
+  },
+  {
+    "id": "deck3-7",
+    "displayName": "Self-Sufficient",
+    "flavor": "It's not about trust. It's about survival.",
+    "effect": "Any community you join has -1 maintenance cost (minimum 1). You cannot have less than 1 resource.",
+    "quantity": 5
+  },
+  {
+    "id": "deck3-8",
+    "displayName": "Efficient",
+    "flavor": "Not a second wasted on anything unnecessary.",
+    "effect": "Individual and Community traits cost -2 resources (minimum 1).",
+    "quantity": 5
+  },
+  {
+    "id": "deck3-9",
+    "displayName": "Resourceful",
+    "flavor": "Thank god you spent all that time reading Wikipedia articles.",
+    "effect": "At the start of your turn, select any available trait. On subsequent turns, at the start of your turn, you may exchange this trait for another available trait.",
+    "quantity": 5
+  },
+  {
+    "id": "deck3-10",
+    "displayName": "Seer",
+    "flavor": "You're a small pebble, trying to redirect the raging river of the future.",
+    "effect": "At any time, you may discard this trait to cancel any event card. If you are alone, gain 3 resources. If you are in a community, gain a new trait other than Seer.",
+    "quantity": 5
+  }
+]

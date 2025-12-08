@@ -1,0 +1,68 @@
+"use client";
+
+import { useState, ReactNode } from "react";
+
+interface DeckTabsProps {
+  children: {
+    individualEvent: ReactNode;
+    communityEvent: ReactNode;
+    individualTraits: ReactNode;
+    communityTraits: ReactNode;
+    desperateMeasures: ReactNode;
+  };
+}
+
+type DeckTab = "individualEvent" | "communityEvent" | "individualTraits" | "communityTraits" | "desperateMeasures";
+
+export default function DeckTabs({ children }: DeckTabsProps) {
+  const [activeTab, setActiveTab] = useState<DeckTab>("individualEvent");
+
+  const tabs = [
+    { id: "individualEvent" as DeckTab, label: "Individual Event" },
+    { id: "communityEvent" as DeckTab, label: "Community Event" },
+    { id: "individualTraits" as DeckTab, label: "Individual Traits" },
+    { id: "communityTraits" as DeckTab, label: "Community Traits" },
+    { id: "desperateMeasures" as DeckTab, label: "Desperate Measures" },
+  ];
+
+  return (
+    <div className="w-full">
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4 border-b border-gray-200">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === tab.id
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Deck Content - All decks remain mounted to preserve state */}
+      <div className="relative">
+        <div className={activeTab === "individualEvent" ? "block" : "hidden"}>
+          {children.individualEvent}
+        </div>
+        <div className={activeTab === "communityEvent" ? "block" : "hidden"}>
+          {children.communityEvent}
+        </div>
+        <div className={activeTab === "individualTraits" ? "block" : "hidden"}>
+          {children.individualTraits}
+        </div>
+        <div className={activeTab === "communityTraits" ? "block" : "hidden"}>
+          {children.communityTraits}
+        </div>
+        <div className={activeTab === "desperateMeasures" ? "block" : "hidden"}>
+          {children.desperateMeasures}
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -1,0 +1,204 @@
+[
+  {
+    "id": "comm-1",
+    "displayName": "Surviving",
+    "flavor": "You're shocked every day at how much food people need to survive.",
+    "effect": "Lose 5 resources.",
+    "quantity": 5,
+    "type": "bad"
+  },
+  {
+    "id": "comm-2",
+    "displayName": "The Cost of Survival",
+    "flavor": "A member of the community is dying. One of your own.",
+    "effect": "Lose 5 resources OR one member must be removed from the community.",
+    "quantity": 2,
+    "type": "bad"
+  },
+  {
+    "id": "comm-3",
+    "displayName": "Cost of Forgiveness",
+    "flavor": "You have too many threats out there to tolerate threats among your own.",
+    "effect": "Lose 5 resources AND one member must be removed from the community.",
+    "quantity": 2,
+    "type": "bad"
+  },
+  {
+    "id": "comm-4",
+    "displayName": "Uncharacteristic Fortune",
+    "flavor": "You almost walked right past it, but you saw it in the corner of your eye.",
+    "effect": "Gain 1d6 resources. If you have a Lucky member, instead gain 1d6 resources for each member of the community.",
+    "quantity": 2,
+    "type": "good",
+    "isTraitEffect": "Lucky"
+  },
+  {
+    "id": "comm-5",
+    "displayName": "The Power of Community",
+    "flavor": "It's amazing how much more you can do when you work together.",
+    "effect": "Collect 5 resources.",
+    "quantity": 5,
+    "type": "good"
+  },
+  {
+    "id": "comm-6",
+    "displayName": "Specialization",
+    "flavor": "Your community is growing and diversifying.",
+    "effect": "Gain a community trait.",
+    "quantity": 5,
+    "type": "good"
+  },
+  {
+    "id": "comm-7",
+    "displayName": "Coming Back to Life",
+    "flavor": "You can see it...signs of civilization.",
+    "effect": "Increment the Civilization Counter by 1.",
+    "quantity": 2,
+    "type": "good"
+  },
+  {
+    "id": "comm-8",
+    "displayName": "A True Disaster",
+    "flavor": "There was a fire. Everything...it's gone. All gone.",
+    "effect": "The community is disbanded.",
+    "quantity": 2,
+    "type": "bad"
+  },
+  {
+    "id": "comm-9",
+    "displayName": "Necessary Violence",
+    "flavor": "Them or us? You lose either way.",
+    "effect": "Lose 10 resources. If you have a Cutthroat member, instead gain 5 resources.",
+    "quantity": 1,
+    "type": "bad",
+    "isTraitEffect": "Cutthroat"
+  },
+  {
+    "id": "comm-10",
+    "displayName": "Hidden Bounty",
+    "flavor": "Those buildings look picked clean to the untrained eye.",
+    "effect": "Collect 3 resources. If you have a Survivalist member, collect 10 resources.",
+    "quantity": 1,
+    "type": "good",
+    "isTraitEffect": "Survivalist"
+  },
+  {
+    "id": "comm-11",
+    "displayName": "Winter Snap",
+    "flavor": "It got cold faster this year.",
+    "effect": "Lose a resource for each member of the community.",
+    "quantity": 5,
+    "type": "bad"
+  },
+  {
+    "id": "comm-12",
+    "displayName": "Strength in Numbers",
+    "flavor": "Everyone is pulling their weight.",
+    "effect": "Collect a resource for each member of the community.",
+    "quantity": 5,
+    "type": "good"
+  },
+  {
+    "id": "comm-13",
+    "displayName": "Irreconcilable Differences",
+    "flavor": "It's simple: follow the rules or leave. Though they never want to leave.",
+    "effect": "One member must be removed from the community.",
+    "quantity": 2,
+    "type": "bad"
+  },
+  {
+    "id": "comm-14",
+    "displayName": "The Least of These",
+    "flavor": "Community is about more than just survival.",
+    "effect": "Gain a Civilization point. If you have a Helpless member, gain 2.",
+    "quantity": 1,
+    "type": "good",
+    "isTraitEffect": "Helpless"
+  },
+  {
+    "id": "comm-15",
+    "displayName": "Risky Strategy",
+    "flavor": "You thought youneeded the resources, but the risk wasn't worth it.",
+    "effect": "If your community has an even number of members, disband.",
+    "quantity": 1,
+    "type": "bad"
+  },
+  {
+    "id": "comm-16",
+    "displayName": "How Could They?",
+    "flavor": "You thought you could trust them, but you were wrong.",
+    "effect": "If your community has an odd number of members, disband.",
+    "quantity": 1,
+    "type": "bad"
+  },
+  {
+    "id": "comm-17",
+    "displayName": "Time's Running Out",
+    "flavor": "The decay of society is accelerating.",
+    "effect": "Next round, increase the Extinction Counter by 2 instead of 1.",
+    "quantity": 1,
+    "type": "bad"
+  },
+  {
+    "id": "comm-18",
+    "displayName": "Hungry Mouths ",
+    "flavor": "It terrifies you to watch the food stores dwindle.",
+    "effect": "Lose 1 resource for each member of the community. If you have a Paranoid member, instead gain resources equal to the Paranoid member's cache (min 1 per member).",
+    "quantity": 1,
+    "type": "mixed",
+    "isTraitEffect": "Paranoid"
+  },
+  {
+    "id": "comm-19",
+    "displayName": "Principled Leadership",
+    "flavor": "You can tell they want to trust each other. It's in their nature.",
+    "effect": "Gain a trait. If you have a Charasmatic member, additionally gain the Town Hall trait.",
+    "quantity": 1,
+    "type": "good",
+    "isTraitEffect": "Charasmatic"
+  },
+  {
+    "id": "comm-20",
+    "displayName": "No Waste",
+    "flavor": "There are calories everywhere in the forest, if you know where to look.",
+    "effect": "Reduce Community Maintenance Cost by 1d2 next round. If you have a Self-Sufficient member, instead waive Community Maintenance cost for 1d2+1 rounds.",
+    "quantity": 1,
+    "type": "good",
+    "isTraitEffect": "Self-Sufficient"
+  },
+  {
+    "id": "comm-21",
+    "displayName": "Fraying Bonds",
+    "flavor": "Tensions are rising and times are tough.",
+    "effect": "Double your community's maintenance cost next round. If you have an Efficient member, gain your maintenence cost instead of paying next round.",
+    "quantity": 1,
+    "type": "mixed",
+    "isTraitEffect": "Efficient"
+  },
+  {
+    "id": "comm-22",
+    "displayName": "Picking Up the Pieces",
+    "flavor": "They left your community in ruins, but you're used to rebuilding.",
+    "effect": "Lose all Community Traits. Gain 5 resources per destroyed trait.",
+    "quantity": 1,
+    "type": "bad"
+  },
+  {
+    "id": "comm-23",
+    "displayName": "Macabre Omens",
+    "flavor": "",
+    "effect": "Draw event carts until you draw a red event. If you have a Seer member, instead draw event cards until you draw a green event.",
+    "quantity": 1,
+    "type": "mixed",
+    "isTraitEffect": "Seer"
+  },
+  {
+    "id": "comm-24",
+    "displayName": "Infrastructural Collapse",
+    "flavor": "Everything is falling apart.",
+    "effect": "Destroy 1d2 Community Traits. If you have a Resourceful member, instead gain one Community Trait",
+    "quantity": 1,
+    "type": "mixed",
+    "isTraitEffect": "Resourceful"
+  }
+]

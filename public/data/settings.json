@@ -1,0 +1,21 @@
+{
+  "extinctionCounterMax": 20,
+  "civilizationCounterMax": 20,
+  "players": [
+    {
+      "name": "Wesley"
+    },
+    {
+      "name": "Sarah"
+    },
+    {
+      "name": "Abdallah"
+    },
+    {
+      "name": "Erika"
+    },
+    {
+      "name": "Alex"
+    }
+  ]
+}

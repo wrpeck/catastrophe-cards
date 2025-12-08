@@ -1,0 +1,210 @@
+"use client";
+
+import { useState } from "react";
+import CommunitiesTracker from "./CommunitiesTracker";
+
+interface Player {
+  name: string;
+  resources: number;
+}
+
+interface Community {
+  id: string;
+  name: string;
+  resources: number;
+  memberPlayerNames: string[];
+}
+
+interface PlayerTrackerProps {
+  players: Player[];
+  onResourceChange: (playerIndex: number, newValue: number) => void;
+  communities: Community[];
+  availablePlayers: string[];
+  onCommunityResourceChange: (communityId: string, newValue: number) => void;
+  onUpdateCommunity: (communityId: string, updates: Partial<Community>) => void;
+  onDisbandCommunity: (communityId: string) => void;
+  onCreateCommunity: (name: string, memberPlayerNames: string[]) => void;
+  getPlayerCommunity: (playerName: string) => Community | null;
+}
+
+export default function PlayerTracker({
+  players,
+  onResourceChange,
+  communities,
+  availablePlayers,
+  onCommunityResourceChange,
+  onUpdateCommunity,
+  onDisbandCommunity,
+  onCreateCommunity,
+  getPlayerCommunity,
+}: PlayerTrackerProps) {
+  const [activeTab, setActiveTab] = useState<"players" | "communities">(
+    "players"
+  );
+
+  const handleIncrement = (index: number) => {
+    onResourceChange(index, players[index].resources + 1);
+  };
+
+  const handleDecrement = (index: number) => {
+    onResourceChange(index, Math.max(0, players[index].resources - 1));
+  };
+
+  const handleInputChange = (index: number, value: string) => {
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 0) {
+      onResourceChange(index, numValue);
+    } else if (value === "" || value === "-") {
+      // Allow empty or minus sign for user input
+      onResourceChange(index, 0);
+    }
+  };
+
+  const handleReset = (index: number) => {
+    onResourceChange(index, 0);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setActiveTab("players")}
+          className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === "players"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          {activeTab === "players" ? (
+            "Players"
+          ) : (
+            <span className="text-lg font-bold">P</span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab("communities")}
+          className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === "communities"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          {activeTab === "communities" ? (
+            "Communities"
+          ) : (
+            <span className="text-lg font-bold">C</span>
+          )}
+        </button>
+      </div>
+
+      {/* Players Tab */}
+      {activeTab === "players" && (
+        <div>
+          {players.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No players configured. Add players in settings.json
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {players.map((player, index) => {
+                const playerCommunity = getPlayerCommunity(player.name);
+                return (
+                  <div
+                    key={index}
+                    className="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-gray-900 break-words flex-1">
+                        {player.name}
+                      </p>
+                      <button
+                        onClick={() => handleReset(index)}
+                        disabled={player.resources === 0}
+                        className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 active:bg-gray-300 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-100"
+                        aria-label={`Reset resources for ${player.name}`}
+                        title="Reset to 0"
+                      >
+                        Reset
+                      </button>
+                    </div>
+
+                    {/* Show community membership */}
+                    {playerCommunity && (
+                      <div className="flex items-center gap-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                          {playerCommunity.name}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 justify-end">
+                      <button
+                        onClick={() => handleDecrement(index)}
+                        className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400 transition-colors touch-manipulation"
+                        aria-label={`Decrease resources for ${player.name}`}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        value={player.resources}
+                        onChange={(e) =>
+                          handleInputChange(index, e.target.value)
+                        }
+                        className="w-16 px-2 py-1 text-center text-sm font-semibold text-gray-900 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        aria-label={`Resources for ${player.name}`}
+                      />
+                      <button
+                        onClick={() => handleIncrement(index)}
+                        className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400 transition-colors touch-manipulation"
+                        aria-label={`Increase resources for ${player.name}`}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Communities Tab */}
+      {activeTab === "communities" && (
+        <CommunitiesTracker
+          communities={communities}
+          availablePlayers={availablePlayers}
+          onResourceChange={onCommunityResourceChange}
+          onUpdateCommunity={onUpdateCommunity}
+          onDisbandCommunity={onDisbandCommunity}
+          onCreateCommunity={onCreateCommunity}
+        />
+      )}
+    </div>
+  );
+}
