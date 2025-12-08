@@ -19,9 +19,9 @@ interface CommunitiesTrackerProps {
   communities: Community[];
   availablePlayers: string[];
   onResourceChange: (communityId: string, newValue: number) => void;
-  onUpdateCommunity: (communityId: string, updates: Partial<Community>, optOutPlayers?: string[]) => void;
+  onUpdateCommunity: (communityId: string, updates: Partial<Community>, optOutPlayers?: string[], waivedCostPlayers?: string[]) => void;
   onDisbandCommunity: (communityId: string) => void;
-  onCreateCommunity: (name: string, memberPlayerNames: string[], optOutPlayers: string[]) => void;
+  onCreateCommunity: (name: string, memberPlayerNames: string[], optOutPlayers: string[], waivedCostPlayers: string[]) => void;
   playerResources: PlayerResource[];
   communityCostPerMember: number;
 }
@@ -78,14 +78,14 @@ export default function CommunitiesTracker({
     setShowCreateModal(true);
   };
 
-  const handleModalSubmit = (name: string, memberPlayerNames: string[], optOutPlayers: string[]) => {
+  const handleModalSubmit = (name: string, memberPlayerNames: string[], optOutPlayers: string[], waivedCostPlayers: string[]) => {
     if (editingCommunityId) {
       onUpdateCommunity(editingCommunityId, {
         name,
         memberPlayerNames,
-      }, optOutPlayers);
+      }, optOutPlayers, waivedCostPlayers);
     } else {
-      onCreateCommunity(name, memberPlayerNames, optOutPlayers);
+      onCreateCommunity(name, memberPlayerNames, optOutPlayers, waivedCostPlayers);
     }
     setShowCreateModal(false);
     setEditingCommunityId(null);

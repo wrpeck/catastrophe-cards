@@ -23,7 +23,7 @@ interface PlayerTrackerProps {
   onCommunityResourceChange: (communityId: string, newValue: number) => void;
   onUpdateCommunity: (communityId: string, updates: Partial<Community>) => void;
   onDisbandCommunity: (communityId: string) => void;
-  onCreateCommunity: (name: string, memberPlayerNames: string[], optOutPlayers: string[]) => void;
+  onCreateCommunity: (name: string, memberPlayerNames: string[], optOutPlayers: string[], waivedCostPlayers: string[]) => void;
   getPlayerCommunity: (playerName: string) => Community | null;
   playerResources: Player[];
   communityCostPerMember: number;

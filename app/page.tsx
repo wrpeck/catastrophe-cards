@@ -19,6 +19,7 @@ import {
   PlayerResource,
   Community,
   DeckState,
+  Settings,
 } from "@/types/gameState";
 import {
   saveGameState,
@@ -34,16 +35,6 @@ import {
   initializeCardPool,
   rebuildPoolFromCards,
 } from "@/utils/deckHelpers";
-
-interface Player {
-  name: string;
-}
-
-interface Settings {
-  extinctionCounterMax: number;
-  civilizationCounterMax: number;
-  players: Player[];
-}
 
 type DeckTab =
   | "individualEvent"
@@ -1049,30 +1040,31 @@ export default function Home() {
   const handleCreateCommunity = (
     name: string,
     memberPlayerNames: string[],
-    optOutPlayers: string[]
+    optOutPlayers: string[],
+    waivedCostPlayers: string[]
   ) => {
     const optOutSet = new Set(optOutPlayers);
+    const waivedCostSet = new Set(waivedCostPlayers);
     let totalTransferredResources = 0;
 
-    // Process each joining member: deduct cost and transfer resources
+    // Process each joining member: deduct cost (unless waived) and transfer resources
     setPlayerResources((prev) => {
       const updated = prev.map((player) => {
         if (!memberPlayerNames.includes(player.name)) {
           return player; // Not joining, no change
         }
 
-        // Deduct cost from all joining members
-        const resourcesAfterCost = Math.max(
-          0,
-          player.resources - settings.communityCostPerMember
-        );
+        // Deduct cost from joining members (unless waived)
+        const resourcesAfterCost = waivedCostSet.has(player.name)
+          ? player.resources // Cost waived, keep all resources
+          : Math.max(0, player.resources - settings.communityCostPerMember);
 
         // Transfer resources if not opted out
         if (!optOutSet.has(player.name)) {
           totalTransferredResources += resourcesAfterCost;
           return { ...player, resources: 0 }; // All resources transferred
         } else {
-          return { ...player, resources: resourcesAfterCost }; // Keep remaining after cost
+          return { ...player, resources: resourcesAfterCost }; // Keep remaining after cost (or all if waived)
         }
       });
       return updated;
@@ -1091,13 +1083,17 @@ export default function Home() {
   const handleUpdateCommunity = (
     communityId: string,
     updates: Partial<Community>,
-    optOutPlayers?: string[]
+    optOutPlayers?: string[],
+    waivedCostPlayers?: string[]
   ) => {
     const existingCommunity = communities.find((c) => c.id === communityId);
     if (!existingCommunity) return;
 
     const optOutSet = optOutPlayers
       ? new Set(optOutPlayers)
+      : new Set<string>();
+    const waivedCostSet = waivedCostPlayers
+      ? new Set(waivedCostPlayers)
       : new Set<string>();
     const oldMemberNames = existingCommunity.memberPlayerNames;
     const newMemberNames = updates.memberPlayerNames || oldMemberNames;
@@ -1109,7 +1105,7 @@ export default function Home() {
 
     let additionalResources = 0;
 
-    // Process newly added members: deduct cost and transfer resources
+    // Process newly added members: deduct cost (unless waived) and transfer resources
     if (newlyAddedMembers.length > 0) {
       setPlayerResources((prev) => {
         const updated = prev.map((player) => {
@@ -1117,18 +1113,17 @@ export default function Home() {
             return player; // Not newly joining, no change
           }
 
-          // Deduct cost from all newly joining members
-          const resourcesAfterCost = Math.max(
-            0,
-            player.resources - settings.communityCostPerMember
-          );
+          // Deduct cost from newly joining members (unless waived)
+          const resourcesAfterCost = waivedCostSet.has(player.name)
+            ? player.resources // Cost waived, keep all resources
+            : Math.max(0, player.resources - settings.communityCostPerMember);
 
           // Transfer resources if not opted out
           if (!optOutSet.has(player.name)) {
             additionalResources += resourcesAfterCost;
             return { ...player, resources: 0 }; // All resources transferred
           } else {
-            return { ...player, resources: resourcesAfterCost }; // Keep remaining after cost
+            return { ...player, resources: resourcesAfterCost }; // Keep remaining after cost (or all if waived)
           }
         });
         return updated;

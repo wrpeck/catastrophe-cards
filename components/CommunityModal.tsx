@@ -17,7 +17,7 @@ interface PlayerResource {
 interface CommunityModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, memberPlayerNames: string[], optOutPlayers: string[]) => void;
+  onSubmit: (name: string, memberPlayerNames: string[], optOutPlayers: string[], waivedCostPlayers: string[]) => void;
   availablePlayers: string[];
   existingCommunities: Community[];
   editingCommunity?: Community | null;
@@ -38,6 +38,7 @@ export default function CommunityModal({
   const [name, setName] = useState("");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [optOutPlayers, setOptOutPlayers] = useState<Set<string>>(new Set());
+  const [waivedCostPlayers, setWaivedCostPlayers] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function CommunityModal({
         setName(editingCommunity.name);
         setSelectedPlayers([...editingCommunity.memberPlayerNames]);
         setOptOutPlayers(new Set());
+        setWaivedCostPlayers(new Set());
       } else {
         const nextNumber =
           existingCommunities.length > 0
@@ -59,6 +61,7 @@ export default function CommunityModal({
         setName(`Community ${nextNumber}`);
         setSelectedPlayers([]);
         setOptOutPlayers(new Set());
+        setWaivedCostPlayers(new Set());
       }
       setError(null);
     }
@@ -67,8 +70,13 @@ export default function CommunityModal({
   const handlePlayerToggle = (playerName: string) => {
     if (selectedPlayers.includes(playerName)) {
       setSelectedPlayers(selectedPlayers.filter((p) => p !== playerName));
-      // Remove from opt-out set if deselected
+      // Remove from opt-out and waived cost sets if deselected
       setOptOutPlayers((prev) => {
+        const updated = new Set(prev);
+        updated.delete(playerName);
+        return updated;
+      });
+      setWaivedCostPlayers((prev) => {
         const updated = new Set(prev);
         updated.delete(playerName);
         return updated;
@@ -91,12 +99,28 @@ export default function CommunityModal({
     });
   };
 
+  const handleWaiveCostToggle = (playerName: string) => {
+    setWaivedCostPlayers((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(playerName)) {
+        updated.delete(playerName);
+      } else {
+        updated.add(playerName);
+      }
+      return updated;
+    });
+  };
+
   const getPlayerResource = (playerName: string): number => {
     const player = playerResources.find((p) => p.name === playerName);
     return player?.resources ?? 0;
   };
 
   const canPlayerJoin = (playerName: string): boolean => {
+    // If cost is waived, player can always join
+    if (waivedCostPlayers.has(playerName)) {
+      return true;
+    }
     return getPlayerResource(playerName) >= communityCostPerMember;
   };
 
@@ -136,21 +160,25 @@ export default function CommunityModal({
       return;
     }
 
-    // Check if all selected players have sufficient resources
+    // Check if all selected players have sufficient resources OR have their cost waived
     const playersWithInsufficientResources = selectedPlayers.filter(
-      (playerName) => !canPlayerJoin(playerName)
+      (playerName) => {
+        const resource = getPlayerResource(playerName);
+        const isWaived = waivedCostPlayers.has(playerName);
+        return resource < communityCostPerMember && !isWaived;
+      }
     );
 
     if (playersWithInsufficientResources.length > 0) {
       setError(
         `The following players have insufficient resources (need ${communityCostPerMember}): ${playersWithInsufficientResources.join(
           ", "
-        )}`
+        )}. Please waive their cost to allow them to join.`
       );
       return;
     }
 
-    onSubmit(name.trim(), selectedPlayers, Array.from(optOutPlayers));
+    onSubmit(name.trim(), selectedPlayers, Array.from(optOutPlayers), Array.from(waivedCostPlayers));
     onClose();
   };
 
@@ -211,11 +239,11 @@ export default function CommunityModal({
                   const playerCommunity = getPlayerCommunity(playerName);
                   const isSelected = selectedPlayers.includes(playerName);
                   const playerResource = getPlayerResource(playerName);
-                  const hasInsufficientResources = !canPlayerJoin(playerName);
+                  const hasInsufficientResources = playerResource < communityCostPerMember;
+                  const isCostWaived = waivedCostPlayers.has(playerName);
                   const isDisabled =
-                    (!!playerCommunity &&
-                      playerCommunity.id !== editingCommunity?.id) ||
-                    hasInsufficientResources;
+                    !!playerCommunity &&
+                    playerCommunity.id !== editingCommunity?.id;
 
                   return (
                     <div key={playerName}>
@@ -228,8 +256,8 @@ export default function CommunityModal({
                             : "hover:bg-gray-50 cursor-pointer"
                         }`}
                         title={
-                          hasInsufficientResources
-                            ? `Insufficient resources (need ${communityCostPerMember}, has ${playerResource})`
+                          hasInsufficientResources && !isCostWaived
+                            ? `Insufficient resources (need ${communityCostPerMember}, has ${playerResource}). Waive cost to allow joining.`
                             : undefined
                         }
                       >
@@ -248,15 +276,29 @@ export default function CommunityModal({
                             (in {playerCommunity.name})
                           </span>
                         )}
-                        {hasInsufficientResources && !playerCommunity && (
+                        {hasInsufficientResources && !isCostWaived && !playerCommunity && (
                           <span className="text-xs text-red-500">
-                            (insufficient)
+                            (insufficient - waive cost to join)
+                          </span>
+                        )}
+                        {isCostWaived && (
+                          <span className="text-xs text-green-600">
+                            (cost waived)
                           </span>
                         )}
                       </label>
-                      {/* Opt-out checkbox for selected players */}
+                      {/* Options for selected players */}
                       {isSelected && !isDisabled && (
-                        <div className="ml-8 mb-1">
+                        <div className="ml-8 mb-1 space-y-1">
+                          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={waivedCostPlayers.has(playerName)}
+                              onChange={() => handleWaiveCostToggle(playerName)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Waive cost</span>
+                          </label>
                           <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
                             <input
                               type="checkbox"
@@ -278,7 +320,10 @@ export default function CommunityModal({
               {selectedPlayers.length !== 1 ? "s" : ""}
               {selectedPlayers.length > 0 && (
                 <span className="ml-2">
-                  • Total cost: {selectedPlayers.length * communityCostPerMember}
+                  • Total cost: {(selectedPlayers.length - waivedCostPlayers.size) * communityCostPerMember}
+                  {waivedCostPlayers.size > 0 && (
+                    <span className="text-green-600"> ({waivedCostPlayers.size} waived)</span>
+                  )}
                 </span>
               )}
             </p>
