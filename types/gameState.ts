@@ -54,6 +54,11 @@ export interface GameState {
   cardPlayerAssignments: [string, string][]; // [cardKey, playerName]
   communityTraitAssignments: [string, string][]; // [cardKey, communityId]
   
+  // Player Badges (serialized as arrays for JSON compatibility)
+  missingTurnPlayers: string[]; // Player names with missing turn badge
+  missingResourcesPlayers: string[]; // Player names with missing resources badge
+  extraEventCardPlayers: string[]; // Player names with extra event card badge
+  
   // Deck States
   individualEventDeck: DeckState;
   communityEventDeck: DeckState;

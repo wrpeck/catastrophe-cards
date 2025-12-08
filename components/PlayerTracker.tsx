@@ -23,10 +23,21 @@ interface PlayerTrackerProps {
   onCommunityResourceChange: (communityId: string, newValue: number) => void;
   onUpdateCommunity: (communityId: string, updates: Partial<Community>) => void;
   onDisbandCommunity: (communityId: string) => void;
-  onCreateCommunity: (name: string, memberPlayerNames: string[], optOutPlayers: string[], waivedCostPlayers: string[]) => void;
+  onCreateCommunity: (
+    name: string,
+    memberPlayerNames: string[],
+    optOutPlayers: string[],
+    waivedCostPlayers: string[]
+  ) => void;
   getPlayerCommunity: (playerName: string) => Community | null;
   playerResources: Player[];
   communityCostPerMember: number;
+  missingTurnPlayers: Set<string>;
+  onToggleMissingTurn: (playerName: string) => void;
+  missingResourcesPlayers: Set<string>;
+  onToggleMissingResources: (playerName: string) => void;
+  extraEventCardPlayers: Set<string>;
+  onToggleExtraEventCard: (playerName: string) => void;
 }
 
 export default function PlayerTracker({
@@ -41,6 +52,12 @@ export default function PlayerTracker({
   getPlayerCommunity,
   playerResources,
   communityCostPerMember,
+  missingTurnPlayers,
+  onToggleMissingTurn,
+  missingResourcesPlayers,
+  onToggleMissingResources,
+  extraEventCardPlayers,
+  onToggleExtraEventCard,
 }: PlayerTrackerProps) {
   const [activeTab, setActiveTab] = useState<"players" | "communities">(
     "players"
@@ -133,14 +150,71 @@ export default function PlayerTracker({
                       </button>
                     </div>
 
-                    {/* Show community membership */}
-                    {playerCommunity && (
-                      <div className="flex items-center gap-1">
+                    {/* Show community membership and badges */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {playerCommunity && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                           {playerCommunity.name}
                         </span>
-                      </div>
-                    )}
+                      )}
+                      {/* Missing Turn Badge */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleMissingTurn(player.name);
+                        }}
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                          missingTurnPlayers.has(player.name)
+                            ? "bg-orange-100 text-orange-800 hover:bg-orange-200"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                        title={
+                          missingTurnPlayers.has(player.name)
+                            ? "Click to remove 'Missing Turn' badge"
+                            : "Click to mark as missing turn"
+                        }
+                      >
+                        ⏰ Skip
+                      </button>
+                      {/* Missing Resources Badge */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleMissingResources(player.name);
+                        }}
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                          missingResourcesPlayers.has(player.name)
+                            ? "bg-red-100 text-red-800 hover:bg-red-200"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                        title={
+                          missingResourcesPlayers.has(player.name)
+                            ? "Click to remove 'Missing Resources' badge"
+                            : "Click to mark as missing resources"
+                        }
+                      >
+                        💰 No $
+                      </button>
+                      {/* Extra Event Card Badge */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleExtraEventCard(player.name);
+                        }}
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                          extraEventCardPlayers.has(player.name)
+                            ? "bg-purple-100 text-purple-800 hover:bg-purple-200"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                        title={
+                          extraEventCardPlayers.has(player.name)
+                            ? "Click to remove 'Extra Event Card' badge"
+                            : "Click to mark as having extra event card"
+                        }
+                      >
+                        🎴 Extra
+                      </button>
+                    </div>
 
                     <div className="flex items-center gap-2 justify-end">
                       <button

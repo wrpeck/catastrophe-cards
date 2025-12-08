@@ -64,6 +64,15 @@ export default function Home() {
   const [communityTraitAssignments, setCommunityTraitAssignments] = useState<
     Map<string, string>
   >(new Map());
+  const [missingTurnPlayers, setMissingTurnPlayers] = useState<Set<string>>(
+    new Set()
+  );
+  const [missingResourcesPlayers, setMissingResourcesPlayers] = useState<
+    Set<string>
+  >(new Set());
+  const [extraEventCardPlayers, setExtraEventCardPlayers] = useState<
+    Set<string>
+  >(new Set());
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [activeDeckTab, setActiveDeckTab] =
     useState<DeckTab>("individualEvent");
@@ -992,6 +1001,10 @@ export default function Home() {
 
   const handleRoundIncrement = () => {
     setRoundValue((prev) => prev + 1);
+    // Clear all badges when round increments
+    setMissingTurnPlayers(new Set());
+    setMissingResourcesPlayers(new Set());
+    setExtraEventCardPlayers(new Set());
   };
 
   const handleRoundDecrement = () => {
@@ -1012,6 +1025,42 @@ export default function Home() {
         ...updated[playerIndex],
         resources: newValue,
       };
+      return updated;
+    });
+  };
+
+  const handleToggleMissingTurn = (playerName: string) => {
+    setMissingTurnPlayers((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(playerName)) {
+        updated.delete(playerName);
+      } else {
+        updated.add(playerName);
+      }
+      return updated;
+    });
+  };
+
+  const handleToggleMissingResources = (playerName: string) => {
+    setMissingResourcesPlayers((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(playerName)) {
+        updated.delete(playerName);
+      } else {
+        updated.add(playerName);
+      }
+      return updated;
+    });
+  };
+
+  const handleToggleExtraEventCard = (playerName: string) => {
+    setExtraEventCardPlayers((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(playerName)) {
+        updated.delete(playerName);
+      } else {
+        updated.add(playerName);
+      }
       return updated;
     });
   };
@@ -1238,6 +1287,9 @@ export default function Home() {
       communityTraitAssignments: Array.from(
         communityTraitAssignments.entries()
       ),
+      missingTurnPlayers: Array.from(missingTurnPlayers),
+      missingResourcesPlayers: Array.from(missingResourcesPlayers),
+      extraEventCardPlayers: Array.from(extraEventCardPlayers),
       individualEventDeck: deck1State,
       communityEventDeck: deck2State,
       individualTraitsDeck: deck3State,
@@ -1256,6 +1308,9 @@ export default function Home() {
     pinnedCards,
     cardPlayerAssignments,
     communityTraitAssignments,
+    missingTurnPlayers,
+    missingResourcesPlayers,
+    extraEventCardPlayers,
     deck1State,
     deck2State,
     deck3State,
@@ -1285,6 +1340,9 @@ export default function Home() {
     setPinnedCards(state.pinnedCards);
     setCardPlayerAssignments(new Map(state.cardPlayerAssignments));
     setCommunityTraitAssignments(new Map(state.communityTraitAssignments));
+    setMissingTurnPlayers(new Set(state.missingTurnPlayers || []));
+    setMissingResourcesPlayers(new Set(state.missingResourcesPlayers || []));
+    setExtraEventCardPlayers(new Set(state.extraEventCardPlayers || []));
     setDeck1State(state.individualEventDeck);
     setDeck2State(state.communityEventDeck);
     setDeck3State(state.individualTraitsDeck);
@@ -1337,6 +1395,9 @@ export default function Home() {
     setPinnedCards([]);
     setCardPlayerAssignments(new Map());
     setCommunityTraitAssignments(new Map());
+    setMissingTurnPlayers(new Set());
+    setMissingResourcesPlayers(new Set());
+    setExtraEventCardPlayers(new Set());
     setCommunities([]);
     setNextCommunityId(1);
 
@@ -1439,6 +1500,12 @@ export default function Home() {
                       getPlayerCommunity={getPlayerCommunity}
                       playerResources={playerResources}
                       communityCostPerMember={settings.communityCostPerMember}
+                      missingTurnPlayers={missingTurnPlayers}
+                      onToggleMissingTurn={handleToggleMissingTurn}
+                      missingResourcesPlayers={missingResourcesPlayers}
+                      onToggleMissingResources={handleToggleMissingResources}
+                      extraEventCardPlayers={extraEventCardPlayers}
+                      onToggleExtraEventCard={handleToggleExtraEventCard}
                     />
                   )}
                 </div>
