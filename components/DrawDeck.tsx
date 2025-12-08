@@ -1,80 +1,52 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Card as CardType } from "@/types/card";
 import Card from "./Card";
 
 interface DrawDeckProps {
   title: string;
   dataFile: string;
+  availableCards: CardType[];
+  drawnCard: CardType | null;
+  onDraw: () => void;
+  onShuffle: () => void;
+  onCardsLoaded?: (cards: CardType[]) => void;
 }
 
-export default function DrawDeck({ title, dataFile }: DrawDeckProps) {
-  const [cards, setCards] = useState<CardType[]>([]);
-  const [availableCards, setAvailableCards] = useState<CardType[]>([]);
-  const [drawnCard, setDrawnCard] = useState<CardType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Load cards from JSON file
+export default function DrawDeck({
+  title,
+  dataFile,
+  availableCards,
+  drawnCard,
+  onDraw,
+  onShuffle,
+  onCardsLoaded,
+}: DrawDeckProps) {
+  // Load cards from JSON file and notify parent
   useEffect(() => {
     async function loadCards() {
       try {
         const response = await fetch(dataFile);
         const data: CardType[] = await response.json();
-        setCards(data);
-        // Initialize available cards pool with duplicates based on quantity
-        const initialPool: CardType[] = [];
-        data.forEach((card) => {
-          for (let i = 0; i < card.quantity; i++) {
-            initialPool.push({ ...card });
-          }
-        });
-        setAvailableCards(initialPool);
-        setIsLoading(false);
+        if (onCardsLoaded) {
+          onCardsLoaded(data);
+        }
       } catch (error) {
         console.error(`Error loading cards from ${dataFile}:`, error);
-        setIsLoading(false);
       }
     }
     loadCards();
-  }, [dataFile]);
+  }, [dataFile, onCardsLoaded]);
 
   const handleDraw = () => {
     if (availableCards.length === 0) return;
-
-    // Randomly select a card from available pool
-    const randomIndex = Math.floor(Math.random() * availableCards.length);
-    const selectedCard = availableCards[randomIndex];
-
-    // Remove the selected card from available pool
-    const newAvailableCards = [...availableCards];
-    newAvailableCards.splice(randomIndex, 1);
-    setAvailableCards(newAvailableCards);
-
-    // Set as drawn card
-    setDrawnCard(selectedCard);
+    onDraw();
   };
 
   const handleShuffle = () => {
-    // Reset available cards pool
-    const initialPool: CardType[] = [];
-    cards.forEach((card) => {
-      for (let i = 0; i < card.quantity; i++) {
-        initialPool.push({ ...card });
-      }
-    });
-    setAvailableCards(initialPool);
-    setDrawnCard(null);
+    onShuffle();
   };
-
-  if (isLoading) {
-    return (
-      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-        <h2 className="text-xl font-bold mb-4">{title}</h2>
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    );
-  }
 
   const cardCount = availableCards.length;
   const canDraw = cardCount > 0;

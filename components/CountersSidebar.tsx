@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import CountersContent from "./CountersContent";
+import { GameState } from "@/types/gameState";
 
 interface CountersSidebarProps {
   roundValue: number;
@@ -18,6 +19,9 @@ interface CountersSidebarProps {
   onCivilizationIncrement: () => void;
   onCivilizationDecrement: () => void;
   onCivilizationReset: () => void;
+  gameState: GameState;
+  onStateRestored: (state: GameState) => void;
+  onNewGame: () => void;
 }
 
 export default function CountersSidebar({
@@ -35,6 +39,9 @@ export default function CountersSidebar({
   onCivilizationIncrement,
   onCivilizationDecrement,
   onCivilizationReset,
+  gameState,
+  onStateRestored,
+  onNewGame,
 }: CountersSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -89,9 +96,9 @@ export default function CountersSidebar({
           isOpen ? "translate-x-0" : "translate-x-full"
         } w-full sm:w-80`}
       >
-        <div className="h-full overflow-y-auto p-4">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Game Counters</h2>
+        <div className="h-full overflow-y-auto">
+          <div className="flex items-center justify-between p-4 pb-0">
+            <h2 className="text-xl font-bold text-gray-900">Counters & Settings</h2>
             <button
               onClick={() => setIsOpen(false)}
               className="p-2 rounded-lg hover:bg-gray-100 active:scale-95 transition-all touch-manipulation"
@@ -129,6 +136,9 @@ export default function CountersSidebar({
             onCivilizationIncrement={onCivilizationIncrement}
             onCivilizationDecrement={onCivilizationDecrement}
             onCivilizationReset={onCivilizationReset}
+            gameState={gameState}
+            onStateRestored={onStateRestored}
+            onNewGame={onNewGame}
           />
         </div>
       </div>

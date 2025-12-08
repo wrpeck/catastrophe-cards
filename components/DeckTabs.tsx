@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, ReactNode } from "react";
+import { ReactNode } from "react";
+
+export type DeckTab = "individualEvent" | "communityEvent" | "individualTraits" | "communityTraits" | "desperateMeasures";
 
 interface DeckTabsProps {
+  activeTab: DeckTab;
+  onTabChange: (tab: DeckTab) => void;
   children: {
     individualEvent: ReactNode;
     communityEvent: ReactNode;
@@ -12,10 +16,7 @@ interface DeckTabsProps {
   };
 }
 
-type DeckTab = "individualEvent" | "communityEvent" | "individualTraits" | "communityTraits" | "desperateMeasures";
-
-export default function DeckTabs({ children }: DeckTabsProps) {
-  const [activeTab, setActiveTab] = useState<DeckTab>("individualEvent");
+export default function DeckTabs({ activeTab, onTabChange, children }: DeckTabsProps) {
 
   const tabs = [
     { id: "individualEvent" as DeckTab, label: "Individual Event" },
@@ -32,7 +33,7 @@ export default function DeckTabs({ children }: DeckTabsProps) {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => onTabChange(tab.id)}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
               activeTab === tab.id
                 ? "border-blue-600 text-blue-600"

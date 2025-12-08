@@ -20,6 +20,7 @@ interface PinnedCardsBarProps {
   onUnpin: (card: PinnedCardWithDeck) => void;
   extinctionValue: number;
   civilizationValue: number;
+  roundValue: number;
   players: string[];
   cardPlayerAssignments: Map<string, string>;
   onAssignPlayer: (card: PinnedCardWithDeck, playerName: string | null) => void;
@@ -40,6 +41,7 @@ export default function PinnedCardsBar({
   onUnpin,
   extinctionValue,
   civilizationValue,
+  roundValue,
   players,
   cardPlayerAssignments,
   onAssignPlayer,
@@ -50,6 +52,7 @@ export default function PinnedCardsBar({
   getCommunityTraitAssignment,
 }: PinnedCardsBarProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("individual");
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [expandedPosition, setExpandedPosition] = useState<{
     left: number;
@@ -662,97 +665,184 @@ export default function PinnedCardsBar({
       )}
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 shadow-lg z-50">
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-yellow-500"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M16 12V4h1a2 2 0 0 0 0-4H7a2 2 0 1 0 0 4h1v8a2 2 0 0 1-2 2H5a2 2 0 0 0 0 4h14a2 2 0 0 0 0-4h-3a2 2 0 0 1-2-2zm-5-3V4h2v5a1 1 0 1 1-2 0z" />
-              </svg>
-              <h3 className="text-sm font-semibold text-gray-700">
-                Pinned Cards ({pinnedCards.length})
-              </h3>
-            </div>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-red-700 font-medium">
-                Extinction: <span className="font-bold">{extinctionValue}</span>
-              </span>
-              <span className="text-blue-700 font-medium">
-                Civilization:{" "}
-                <span className="font-bold">{civilizationValue}</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Mobile: Tab Toggle */}
-          <div className="md:hidden mb-3">
-            <div className="flex gap-2 border-b border-gray-200">
-              <button
-                onClick={() => setActiveTab("individual")}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === "individual"
-                    ? "text-yellow-600 border-b-2 border-yellow-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Individual Traits ({individualCards.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("community")}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === "community"
-                    ? "text-yellow-600 border-b-2 border-yellow-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Community Traits ({communityCards.length})
-              </button>
-            </div>
-          </div>
-
-          {/* Desktop: Side by side, Mobile: Tabbed */}
-          <div className="md:grid md:grid-cols-2 md:gap-4">
-            {/* Individual Traits - Always visible on desktop, conditional on mobile */}
-            <div
-              className={`${
-                activeTab === "individual" ? "block" : "hidden"
-              } md:block`}
-            >
-              <h4 className="text-xs font-semibold text-gray-600 mb-2">
-                Individual Traits ({individualCards.length})
-              </h4>
-              {renderCardContainer(
-                individualCards,
-                individualScrollRef,
-                individualCanScrollLeft,
-                individualCanScrollRight,
-                "individual"
-              )}
-            </div>
-
-            {/* Community Traits - Always visible on desktop, conditional on mobile */}
-            <div
-              className={`${
-                activeTab === "community" ? "block" : "hidden"
-              } md:block`}
-            >
-              <h4 className="text-xs font-semibold text-gray-600 mb-2">
-                Community Traits ({communityCards.length})
-              </h4>
-              {renderCardContainer(
-                communityCards,
-                communityScrollRef,
-                communityCanScrollLeft,
-                communityCanScrollRight,
-                "community"
-              )}
+        {isCollapsed ? (
+          // Collapsed view - compact single row
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-2">
+            <div className="flex items-center justify-between gap-4 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 text-yellow-500"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M16 12V4h1a2 2 0 0 0 0-4H7a2 2 0 1 0 0 4h1v8a2 2 0 0 1-2 2H5a2 2 0 0 0 0 4h14a2 2 0 0 0 0-4h-3a2 2 0 0 1-2-2zm-5-3V4h2v5a1 1 0 1 1-2 0z" />
+                  </svg>
+                  <span className="text-gray-600 font-medium">
+                    Individual: <span className="font-bold">{individualCards.length}</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-600 font-medium">
+                    Community: <span className="font-bold">{communityCards.length}</span>
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-gray-700 font-medium">
+                  Round: <span className="font-bold">{roundValue}</span>
+                </span>
+                <span className="text-red-700 font-medium">
+                  Extinction: <span className="font-bold">{extinctionValue}</span>
+                </span>
+                <span className="text-blue-700 font-medium">
+                  Civilization: <span className="font-bold">{civilizationValue}</span>
+                </span>
+                <button
+                  onClick={() => setIsCollapsed(false)}
+                  className="p-1 rounded hover:bg-gray-100 transition-colors"
+                  aria-label="Expand pinned cards"
+                  title="Expand"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 text-gray-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          // Expanded view - full content
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-yellow-500"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M16 12V4h1a2 2 0 0 0 0-4H7a2 2 0 1 0 0 4h1v8a2 2 0 0 1-2 2H5a2 2 0 0 0 0 4h14a2 2 0 0 0 0-4h-3a2 2 0 0 1-2-2zm-5-3V4h2v5a1 1 0 1 1-2 0z" />
+                </svg>
+                <h3 className="text-sm font-semibold text-gray-700">
+                  Pinned Cards ({pinnedCards.length})
+                </h3>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="text-gray-700 font-medium">
+                    Round: <span className="font-bold">{roundValue}</span>
+                  </span>
+                  <span className="text-red-700 font-medium">
+                    Extinction: <span className="font-bold">{extinctionValue}</span>
+                  </span>
+                  <span className="text-blue-700 font-medium">
+                    Civilization:{" "}
+                    <span className="font-bold">{civilizationValue}</span>
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsCollapsed(true)}
+                  className="p-1 rounded hover:bg-gray-100 transition-colors"
+                  aria-label="Collapse pinned cards"
+                  title="Collapse"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-gray-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile: Tab Toggle */}
+            <div className="md:hidden mb-3">
+              <div className="flex gap-2 border-b border-gray-200">
+                <button
+                  onClick={() => setActiveTab("individual")}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeTab === "individual"
+                      ? "text-yellow-600 border-b-2 border-yellow-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Individual Traits ({individualCards.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("community")}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeTab === "community"
+                      ? "text-yellow-600 border-b-2 border-yellow-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Community Traits ({communityCards.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop: Side by side, Mobile: Tabbed */}
+            <div className="md:grid md:grid-cols-2 md:gap-4">
+              {/* Individual Traits - Always visible on desktop, conditional on mobile */}
+              <div
+                className={`${
+                  activeTab === "individual" ? "block" : "hidden"
+                } md:block`}
+              >
+                <h4 className="text-xs font-semibold text-gray-600 mb-2">
+                  Individual Traits ({individualCards.length})
+                </h4>
+                {renderCardContainer(
+                  individualCards,
+                  individualScrollRef,
+                  individualCanScrollLeft,
+                  individualCanScrollRight,
+                  "individual"
+                )}
+              </div>
+
+              {/* Community Traits - Always visible on desktop, conditional on mobile */}
+              <div
+                className={`${
+                  activeTab === "community" ? "block" : "hidden"
+                } md:block`}
+              >
+                <h4 className="text-xs font-semibold text-gray-600 mb-2">
+                  Community Traits ({communityCards.length})
+                </h4>
+                {renderCardContainer(
+                  communityCards,
+                  communityScrollRef,
+                  communityCanScrollLeft,
+                  communityCanScrollRight,
+                  "community"
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
