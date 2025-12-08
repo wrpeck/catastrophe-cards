@@ -23,9 +23,18 @@ export interface DeckState {
   drawnCard: Card | null; // For DrawDecks only
 }
 
+export interface Settings {
+  extinctionCounterMax: number;
+  civilizationCounterMax: number;
+  players: { name: string }[];
+}
+
 export interface GameState {
   version: string; // Version number for compatibility
   timestamp: number; // When the state was saved
+  
+  // Settings
+  settings: Settings;
   
   // Counters
   extinctionValue: number;

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import GameCounter from "./GameCounter";
 import SaveLoadControls from "./SaveLoadControls";
-import { GameState } from "@/types/gameState";
+import SettingsEditor from "./SettingsEditor";
+import { GameState, Settings } from "@/types/gameState";
 
 interface CountersContentProps {
   roundValue: number;
@@ -23,6 +24,8 @@ interface CountersContentProps {
   gameState: GameState;
   onStateRestored: (state: GameState) => void;
   onNewGame: () => void;
+  settings: Settings;
+  onSettingsChange: (settings: Settings) => void;
 }
 
 export default function CountersContent({
@@ -43,6 +46,8 @@ export default function CountersContent({
   gameState,
   onStateRestored,
   onNewGame,
+  settings,
+  onSettingsChange,
 }: CountersContentProps) {
   const [activeTab, setActiveTab] = useState<"counters" | "settings">("counters");
 
@@ -153,7 +158,11 @@ export default function CountersContent({
       )}
 
       {activeTab === "settings" && (
-        <div>
+        <div className="space-y-4">
+          <SettingsEditor
+            settings={settings}
+            onSettingsChange={onSettingsChange}
+          />
           <SaveLoadControls
             gameState={gameState}
             onStateRestored={onStateRestored}

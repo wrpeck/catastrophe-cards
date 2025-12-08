@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import CountersContent from "./CountersContent";
-import { GameState } from "@/types/gameState";
+import { GameState, Settings } from "@/types/gameState";
 
 interface CountersSidebarProps {
   roundValue: number;
@@ -22,6 +22,8 @@ interface CountersSidebarProps {
   gameState: GameState;
   onStateRestored: (state: GameState) => void;
   onNewGame: () => void;
+  settings: Settings;
+  onSettingsChange: (settings: Settings) => void;
 }
 
 export default function CountersSidebar({
@@ -42,6 +44,8 @@ export default function CountersSidebar({
   gameState,
   onStateRestored,
   onNewGame,
+  settings,
+  onSettingsChange,
 }: CountersSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -139,6 +143,8 @@ export default function CountersSidebar({
             gameState={gameState}
             onStateRestored={onStateRestored}
             onNewGame={onNewGame}
+            settings={settings}
+            onSettingsChange={onSettingsChange}
           />
         </div>
       </div>
