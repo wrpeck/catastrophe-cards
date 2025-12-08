@@ -29,6 +29,13 @@ export default function SettingsEditor({
     onSettingsChange(updated);
   };
 
+  const handleCommunityCostPerMemberChange = (value: number) => {
+    const updated = { ...localSettings, communityCostPerMember: value };
+    setLocalSettings(updated);
+    setHasChanges(true);
+    onSettingsChange(updated);
+  };
+
   const handlePlayerNameChange = (index: number, name: string) => {
     const updated = {
       ...localSettings,
@@ -95,6 +102,22 @@ export default function SettingsEditor({
             value={localSettings.civilizationCounterMax}
             onChange={(e) =>
               handleCivilizationMaxChange(parseInt(e.target.value) || 1)
+            }
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Community Cost / Member
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={localSettings.communityCostPerMember}
+            onChange={(e) =>
+              handleCommunityCostPerMemberChange(parseInt(e.target.value) || 0)
             }
             className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

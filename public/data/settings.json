@@ -1,6 +1,7 @@
 {
   "extinctionCounterMax": 20,
   "civilizationCounterMax": 20,
+  "communityCostPerMember": 1,
   "players": [
     {
       "name": "Wesley"

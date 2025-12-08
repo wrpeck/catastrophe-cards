@@ -23,8 +23,10 @@ interface PlayerTrackerProps {
   onCommunityResourceChange: (communityId: string, newValue: number) => void;
   onUpdateCommunity: (communityId: string, updates: Partial<Community>) => void;
   onDisbandCommunity: (communityId: string) => void;
-  onCreateCommunity: (name: string, memberPlayerNames: string[]) => void;
+  onCreateCommunity: (name: string, memberPlayerNames: string[], optOutPlayers: string[]) => void;
   getPlayerCommunity: (playerName: string) => Community | null;
+  playerResources: Player[];
+  communityCostPerMember: number;
 }
 
 export default function PlayerTracker({
@@ -37,6 +39,8 @@ export default function PlayerTracker({
   onDisbandCommunity,
   onCreateCommunity,
   getPlayerCommunity,
+  playerResources,
+  communityCostPerMember,
 }: PlayerTrackerProps) {
   const [activeTab, setActiveTab] = useState<"players" | "communities">(
     "players"
@@ -203,6 +207,8 @@ export default function PlayerTracker({
           onUpdateCommunity={onUpdateCommunity}
           onDisbandCommunity={onDisbandCommunity}
           onCreateCommunity={onCreateCommunity}
+          playerResources={playerResources}
+          communityCostPerMember={communityCostPerMember}
         />
       )}
     </div>

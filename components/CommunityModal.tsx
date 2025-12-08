@@ -9,13 +9,20 @@ interface Community {
   memberPlayerNames: string[];
 }
 
+interface PlayerResource {
+  name: string;
+  resources: number;
+}
+
 interface CommunityModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, memberPlayerNames: string[]) => void;
+  onSubmit: (name: string, memberPlayerNames: string[], optOutPlayers: string[]) => void;
   availablePlayers: string[];
   existingCommunities: Community[];
   editingCommunity?: Community | null;
+  playerResources: PlayerResource[];
+  communityCostPerMember: number;
 }
 
 export default function CommunityModal({
@@ -25,9 +32,12 @@ export default function CommunityModal({
   availablePlayers,
   existingCommunities,
   editingCommunity,
+  playerResources,
+  communityCostPerMember,
 }: CommunityModalProps) {
   const [name, setName] = useState("");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [optOutPlayers, setOptOutPlayers] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,6 +45,7 @@ export default function CommunityModal({
       if (editingCommunity) {
         setName(editingCommunity.name);
         setSelectedPlayers([...editingCommunity.memberPlayerNames]);
+        setOptOutPlayers(new Set());
       } else {
         const nextNumber =
           existingCommunities.length > 0
@@ -47,6 +58,7 @@ export default function CommunityModal({
             : 1;
         setName(`Community ${nextNumber}`);
         setSelectedPlayers([]);
+        setOptOutPlayers(new Set());
       }
       setError(null);
     }
@@ -55,10 +67,37 @@ export default function CommunityModal({
   const handlePlayerToggle = (playerName: string) => {
     if (selectedPlayers.includes(playerName)) {
       setSelectedPlayers(selectedPlayers.filter((p) => p !== playerName));
+      // Remove from opt-out set if deselected
+      setOptOutPlayers((prev) => {
+        const updated = new Set(prev);
+        updated.delete(playerName);
+        return updated;
+      });
     } else {
       setSelectedPlayers([...selectedPlayers, playerName]);
     }
     setError(null);
+  };
+
+  const handleOptOutToggle = (playerName: string) => {
+    setOptOutPlayers((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(playerName)) {
+        updated.delete(playerName);
+      } else {
+        updated.add(playerName);
+      }
+      return updated;
+    });
+  };
+
+  const getPlayerResource = (playerName: string): number => {
+    const player = playerResources.find((p) => p.name === playerName);
+    return player?.resources ?? 0;
+  };
+
+  const canPlayerJoin = (playerName: string): boolean => {
+    return getPlayerResource(playerName) >= communityCostPerMember;
   };
 
   const handleSubmit = () => {
@@ -97,7 +136,21 @@ export default function CommunityModal({
       return;
     }
 
-    onSubmit(name.trim(), selectedPlayers);
+    // Check if all selected players have sufficient resources
+    const playersWithInsufficientResources = selectedPlayers.filter(
+      (playerName) => !canPlayerJoin(playerName)
+    );
+
+    if (playersWithInsufficientResources.length > 0) {
+      setError(
+        `The following players have insufficient resources (need ${communityCostPerMember}): ${playersWithInsufficientResources.join(
+          ", "
+        )}`
+      );
+      return;
+    }
+
+    onSubmit(name.trim(), selectedPlayers, Array.from(optOutPlayers));
     onClose();
   };
 
@@ -148,7 +201,7 @@ export default function CommunityModal({
           {/* Player Selection */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Members (minimum 2)
+              Members (minimum 2, cost: {communityCostPerMember} per member)
             </label>
             <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2">
               {availablePlayers.length === 0 ? (
@@ -157,37 +210,65 @@ export default function CommunityModal({
                 availablePlayers.map((playerName) => {
                   const playerCommunity = getPlayerCommunity(playerName);
                   const isSelected = selectedPlayers.includes(playerName);
+                  const playerResource = getPlayerResource(playerName);
+                  const hasInsufficientResources = !canPlayerJoin(playerName);
                   const isDisabled =
-                    !!playerCommunity &&
-                    playerCommunity.id !== editingCommunity?.id;
+                    (!!playerCommunity &&
+                      playerCommunity.id !== editingCommunity?.id) ||
+                    hasInsufficientResources;
 
                   return (
-                    <label
-                      key={playerName}
-                      className={`flex items-center gap-2 p-2 rounded cursor-pointer ${
-                        isDisabled
-                          ? "bg-gray-100 opacity-50 cursor-not-allowed"
-                          : isSelected
-                          ? "bg-blue-50"
-                          : "hover:bg-gray-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => handlePlayerToggle(playerName)}
-                        disabled={isDisabled}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-900 flex-1">
-                        {playerName}
-                      </span>
-                      {playerCommunity && (
-                        <span className="text-xs text-gray-500">
-                          (in {playerCommunity.name})
+                    <div key={playerName}>
+                      <label
+                        className={`flex items-center gap-2 p-2 rounded ${
+                          isDisabled
+                            ? "bg-gray-100 opacity-50 cursor-not-allowed"
+                            : isSelected
+                            ? "bg-blue-50 cursor-pointer"
+                            : "hover:bg-gray-50 cursor-pointer"
+                        }`}
+                        title={
+                          hasInsufficientResources
+                            ? `Insufficient resources (need ${communityCostPerMember}, has ${playerResource})`
+                            : undefined
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handlePlayerToggle(playerName)}
+                          disabled={isDisabled}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-900 flex-1">
+                          {playerName} ({playerResource} resources)
                         </span>
+                        {playerCommunity && (
+                          <span className="text-xs text-gray-500">
+                            (in {playerCommunity.name})
+                          </span>
+                        )}
+                        {hasInsufficientResources && !playerCommunity && (
+                          <span className="text-xs text-red-500">
+                            (insufficient)
+                          </span>
+                        )}
+                      </label>
+                      {/* Opt-out checkbox for selected players */}
+                      {isSelected && !isDisabled && (
+                        <div className="ml-8 mb-1">
+                          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={optOutPlayers.has(playerName)}
+                              onChange={() => handleOptOutToggle(playerName)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Opt out of resource transfer</span>
+                          </label>
+                        </div>
                       )}
-                    </label>
+                    </div>
                   );
                 })
               )}
@@ -195,6 +276,11 @@ export default function CommunityModal({
             <p className="text-xs text-gray-500 mt-1">
               Selected: {selectedPlayers.length} player
               {selectedPlayers.length !== 1 ? "s" : ""}
+              {selectedPlayers.length > 0 && (
+                <span className="ml-2">
+                  • Total cost: {selectedPlayers.length * communityCostPerMember}
+                </span>
+              )}
             </p>
           </div>
 

@@ -61,6 +61,7 @@ export default function Home() {
   const [settings, setSettings] = useState<Settings>({
     extinctionCounterMax: 20,
     civilizationCounterMax: 20,
+    communityCostPerMember: 1,
     players: [],
   });
   const [playerResources, setPlayerResources] = useState<PlayerResource[]>([]);
@@ -125,9 +126,17 @@ export default function Home() {
         // Check for saved game first - if it exists and has settings, use those
         const savedState = loadGameState();
         if (savedState && savedState.settings) {
-          setSettings(savedState.settings);
+          // Ensure communityCostPerMember exists (for backward compatibility)
+          const loadedSettings = savedState.settings as Partial<Settings>;
+          const settingsWithDefaults: Settings = {
+            extinctionCounterMax: loadedSettings.extinctionCounterMax ?? 20,
+            civilizationCounterMax: loadedSettings.civilizationCounterMax ?? 20,
+            communityCostPerMember: loadedSettings.communityCostPerMember ?? 1,
+            players: loadedSettings.players ?? [],
+          };
+          setSettings(settingsWithDefaults);
           const savedResources: PlayerResource[] =
-            savedState.settings.players.map((player) => {
+            settingsWithDefaults.players.map((player) => {
               const existing = savedState.playerResources.find(
                 (pr) => pr.name === player.name
               );
@@ -141,14 +150,20 @@ export default function Home() {
 
         // Otherwise, load from JSON file
         const response = await fetch("/data/settings.json");
-        const data: Settings = await response.json();
-        setSettings(data);
-        const initialResources: PlayerResource[] = data.players.map(
-          (player) => ({
+        const data = (await response.json()) as Partial<Settings>;
+        // Ensure communityCostPerMember exists (for backward compatibility)
+        const settingsWithDefaults: Settings = {
+          extinctionCounterMax: data.extinctionCounterMax ?? 20,
+          civilizationCounterMax: data.civilizationCounterMax ?? 20,
+          communityCostPerMember: data.communityCostPerMember ?? 1,
+          players: data.players ?? [],
+        };
+        setSettings(settingsWithDefaults);
+        const initialResources: PlayerResource[] =
+          settingsWithDefaults.players.map((player) => ({
             name: player.name,
             resources: 0,
-          })
-        );
+          }));
         setPlayerResources(initialResources);
         setIsLoadingSettings(false);
 
@@ -1031,11 +1046,42 @@ export default function Home() {
     return cardPlayerAssignments.get(cardKey) || null;
   };
 
-  const handleCreateCommunity = (name: string, memberPlayerNames: string[]) => {
+  const handleCreateCommunity = (
+    name: string,
+    memberPlayerNames: string[],
+    optOutPlayers: string[]
+  ) => {
+    const optOutSet = new Set(optOutPlayers);
+    let totalTransferredResources = 0;
+
+    // Process each joining member: deduct cost and transfer resources
+    setPlayerResources((prev) => {
+      const updated = prev.map((player) => {
+        if (!memberPlayerNames.includes(player.name)) {
+          return player; // Not joining, no change
+        }
+
+        // Deduct cost from all joining members
+        const resourcesAfterCost = Math.max(
+          0,
+          player.resources - settings.communityCostPerMember
+        );
+
+        // Transfer resources if not opted out
+        if (!optOutSet.has(player.name)) {
+          totalTransferredResources += resourcesAfterCost;
+          return { ...player, resources: 0 }; // All resources transferred
+        } else {
+          return { ...player, resources: resourcesAfterCost }; // Keep remaining after cost
+        }
+      });
+      return updated;
+    });
+
     const newCommunity: Community = {
       id: `community-${nextCommunityId}`,
       name,
-      resources: 0,
+      resources: totalTransferredResources,
       memberPlayerNames,
     };
     setCommunities([...communities, newCommunity]);
@@ -1044,10 +1090,62 @@ export default function Home() {
 
   const handleUpdateCommunity = (
     communityId: string,
-    updates: Partial<Community>
+    updates: Partial<Community>,
+    optOutPlayers?: string[]
   ) => {
+    const existingCommunity = communities.find((c) => c.id === communityId);
+    if (!existingCommunity) return;
+
+    const optOutSet = optOutPlayers
+      ? new Set(optOutPlayers)
+      : new Set<string>();
+    const oldMemberNames = existingCommunity.memberPlayerNames;
+    const newMemberNames = updates.memberPlayerNames || oldMemberNames;
+
+    // Find newly added members
+    const newlyAddedMembers = newMemberNames.filter(
+      (name) => !oldMemberNames.includes(name)
+    );
+
+    let additionalResources = 0;
+
+    // Process newly added members: deduct cost and transfer resources
+    if (newlyAddedMembers.length > 0) {
+      setPlayerResources((prev) => {
+        const updated = prev.map((player) => {
+          if (!newlyAddedMembers.includes(player.name)) {
+            return player; // Not newly joining, no change
+          }
+
+          // Deduct cost from all newly joining members
+          const resourcesAfterCost = Math.max(
+            0,
+            player.resources - settings.communityCostPerMember
+          );
+
+          // Transfer resources if not opted out
+          if (!optOutSet.has(player.name)) {
+            additionalResources += resourcesAfterCost;
+            return { ...player, resources: 0 }; // All resources transferred
+          } else {
+            return { ...player, resources: resourcesAfterCost }; // Keep remaining after cost
+          }
+        });
+        return updated;
+      });
+    }
+
+    // Update community with new members and add transferred resources
     setCommunities((prev) =>
-      prev.map((c) => (c.id === communityId ? { ...c, ...updates } : c))
+      prev.map((c) =>
+        c.id === communityId
+          ? {
+              ...c,
+              ...updates,
+              resources: c.resources + additionalResources,
+            }
+          : c
+      )
     );
   };
 
@@ -1173,7 +1271,15 @@ export default function Home() {
 
   const restoreGameState = useCallback((state: GameState) => {
     if (state.settings) {
-      setSettings(state.settings);
+      // Ensure communityCostPerMember exists (for backward compatibility)
+      const loadedSettings = state.settings as Partial<Settings>;
+      const settingsWithDefaults: Settings = {
+        extinctionCounterMax: loadedSettings.extinctionCounterMax ?? 20,
+        civilizationCounterMax: loadedSettings.civilizationCounterMax ?? 20,
+        communityCostPerMember: loadedSettings.communityCostPerMember ?? 1,
+        players: loadedSettings.players ?? [],
+      };
+      setSettings(settingsWithDefaults);
     }
     setExtinctionValue(state.extinctionValue);
     setCivilizationValue(state.civilizationValue);
@@ -1336,6 +1442,8 @@ export default function Home() {
                       onDisbandCommunity={handleDisbandCommunity}
                       onCreateCommunity={handleCreateCommunity}
                       getPlayerCommunity={getPlayerCommunity}
+                      playerResources={playerResources}
+                      communityCostPerMember={settings.communityCostPerMember}
                     />
                   )}
                 </div>

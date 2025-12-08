@@ -26,6 +26,7 @@ export interface DeckState {
 export interface Settings {
   extinctionCounterMax: number;
   civilizationCounterMax: number;
+  communityCostPerMember: number;
   players: { name: string }[];
 }
 

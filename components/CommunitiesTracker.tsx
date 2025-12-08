@@ -10,13 +10,20 @@ interface Community {
   memberPlayerNames: string[];
 }
 
+interface PlayerResource {
+  name: string;
+  resources: number;
+}
+
 interface CommunitiesTrackerProps {
   communities: Community[];
   availablePlayers: string[];
   onResourceChange: (communityId: string, newValue: number) => void;
-  onUpdateCommunity: (communityId: string, updates: Partial<Community>) => void;
+  onUpdateCommunity: (communityId: string, updates: Partial<Community>, optOutPlayers?: string[]) => void;
   onDisbandCommunity: (communityId: string) => void;
-  onCreateCommunity: (name: string, memberPlayerNames: string[]) => void;
+  onCreateCommunity: (name: string, memberPlayerNames: string[], optOutPlayers: string[]) => void;
+  playerResources: PlayerResource[];
+  communityCostPerMember: number;
 }
 
 export default function CommunitiesTracker({
@@ -26,6 +33,8 @@ export default function CommunitiesTracker({
   onUpdateCommunity,
   onDisbandCommunity,
   onCreateCommunity,
+  playerResources,
+  communityCostPerMember,
 }: CommunitiesTrackerProps) {
   const [editingCommunityId, setEditingCommunityId] = useState<string | null>(
     null
@@ -69,14 +78,14 @@ export default function CommunitiesTracker({
     setShowCreateModal(true);
   };
 
-  const handleModalSubmit = (name: string, memberPlayerNames: string[]) => {
+  const handleModalSubmit = (name: string, memberPlayerNames: string[], optOutPlayers: string[]) => {
     if (editingCommunityId) {
       onUpdateCommunity(editingCommunityId, {
         name,
         memberPlayerNames,
-      });
+      }, optOutPlayers);
     } else {
-      onCreateCommunity(name, memberPlayerNames);
+      onCreateCommunity(name, memberPlayerNames, optOutPlayers);
     }
     setShowCreateModal(false);
     setEditingCommunityId(null);
@@ -233,6 +242,8 @@ export default function CommunitiesTracker({
           availablePlayers={availablePlayers}
           existingCommunities={communities}
           editingCommunity={editingCommunity}
+          playerResources={playerResources}
+          communityCostPerMember={communityCostPerMember}
         />
       )}
     </>
