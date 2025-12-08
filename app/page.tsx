@@ -122,6 +122,24 @@ export default function Home() {
   useEffect(() => {
     async function loadSettings() {
       try {
+        // Check for saved game first - if it exists and has settings, use those
+        const savedState = loadGameState();
+        if (savedState && savedState.settings) {
+          setSettings(savedState.settings);
+          const savedResources: PlayerResource[] =
+            savedState.settings.players.map((player) => {
+              const existing = savedState.playerResources.find(
+                (pr) => pr.name === player.name
+              );
+              return existing || { name: player.name, resources: 0 };
+            });
+          setPlayerResources(savedResources);
+          setIsLoadingSettings(false);
+          setShowLoadPrompt(true);
+          return;
+        }
+
+        // Otherwise, load from JSON file
         const response = await fetch("/data/settings.json");
         const data: Settings = await response.json();
         setSettings(data);
@@ -1086,11 +1104,36 @@ export default function Home() {
     return communityTraitAssignments.get(cardKey) || null;
   };
 
+  // Settings handler
+  const handleSettingsChange = useCallback((newSettings: Settings) => {
+    setSettings(newSettings);
+    // Re-sync player resources based on new settings
+    setPlayerResources((prev) => {
+      const newPlayerNames = newSettings.players.map((p) => p.name);
+      const updated: PlayerResource[] = newPlayerNames.map((name) => {
+        const existing = prev.find((p) => p.name === name);
+        return existing || { name, resources: 0 };
+      });
+      // Remove players no longer in settings from assignments
+      setCardPlayerAssignments((assignments) => {
+        const newAssignments = new Map(assignments);
+        for (const [cardKey, playerName] of assignments.entries()) {
+          if (!newPlayerNames.includes(playerName)) {
+            newAssignments.delete(cardKey);
+          }
+        }
+        return newAssignments;
+      });
+      return updated;
+    });
+  }, []);
+
   // Save/Load functions
   const buildGameState = useCallback((): GameState => {
     return {
       version: "1.0.0",
       timestamp: Date.now(),
+      settings,
       extinctionValue,
       civilizationValue,
       roundValue,
@@ -1110,6 +1153,7 @@ export default function Home() {
       activeDeckTab,
     };
   }, [
+    settings,
     extinctionValue,
     civilizationValue,
     roundValue,
@@ -1128,6 +1172,9 @@ export default function Home() {
   ]);
 
   const restoreGameState = useCallback((state: GameState) => {
+    if (state.settings) {
+      setSettings(state.settings);
+    }
     setExtinctionValue(state.extinctionValue);
     setCivilizationValue(state.civilizationValue);
     setRoundValue(state.roundValue);
@@ -1314,6 +1361,8 @@ export default function Home() {
                       gameState={buildGameState()}
                       onStateRestored={restoreGameState}
                       onNewGame={handleNewGame}
+                      settings={settings}
+                      onSettingsChange={handleSettingsChange}
                     />
                   </div>
                 ) : null
@@ -1440,6 +1489,8 @@ export default function Home() {
           gameState={buildGameState()}
           onStateRestored={restoreGameState}
           onNewGame={handleNewGame}
+          settings={settings}
+          onSettingsChange={handleSettingsChange}
         />
       )}
     </>
