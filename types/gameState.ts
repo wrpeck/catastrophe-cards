@@ -2,6 +2,7 @@ import { Card } from "./card";
 
 export interface PinnedCardWithDeck extends Card {
   deckTitle: string;
+  pinnedId: string; // Unique identifier for each pinned card instance
 }
 
 export interface PlayerResource {
@@ -46,6 +47,7 @@ export interface GameState {
   playerResources: PlayerResource[];
   communities: Community[];
   nextCommunityId: number;
+  nextPinnedId?: number; // Optional for backward compatibility
   
   // Pinned Cards
   pinnedCards: PinnedCardWithDeck[];
@@ -58,6 +60,11 @@ export interface GameState {
   missingTurnPlayers: string[]; // Player names with missing turn badge
   missingResourcesPlayers: string[]; // Player names with missing resources badge
   extraEventCardPlayers: string[]; // Player names with extra event card badge
+  badgeRound: number | null; // Round when badges were set (for clearing after 2 increments)
+  
+  // Turn Tracker
+  currentTurnIndex: number; // Index into computed turn order
+  turnOrder: (string | "creation")[]; // Serialized turn order for save/load
   
   // Deck States
   individualEventDeck: DeckState;

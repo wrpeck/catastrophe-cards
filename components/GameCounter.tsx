@@ -2,12 +2,13 @@
 
 interface GameCounterProps {
   name: string;
-  color: "red" | "blue";
+  color: "red" | "blue" | "green";
   maxDots: number;
   value: number;
   onIncrement: () => void;
   onDecrement: () => void;
   onReset: () => void;
+  animate?: boolean;
 }
 
 export default function GameCounter({
@@ -18,6 +19,7 @@ export default function GameCounter({
   onIncrement,
   onDecrement,
   onReset,
+  animate = false,
 }: GameCounterProps) {
   const colorClasses = {
     red: {
@@ -36,16 +38,54 @@ export default function GameCounter({
       button: "bg-blue-600 hover:bg-blue-700",
       text: "text-blue-700",
     },
+    green: {
+      dot: "bg-green-500",
+      dotEmpty: "border-green-300",
+      dotFilled: "bg-green-500",
+      marker: "bg-green-600",
+      button: "bg-green-600 hover:bg-green-700",
+      text: "text-green-700",
+    },
   };
 
   const colors = colorClasses[color];
   const clampedValue = Math.max(0, Math.min(maxDots, value));
 
   return (
-    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+    <div
+      className={`rounded-lg p-4 border-2 shadow-sm transition-all duration-300 ${
+        animate
+          ? color === "red"
+            ? "bg-red-200 border-red-500 shadow-xl ring-2 ring-red-300"
+            : color === "green"
+            ? "bg-green-200 border-green-500 shadow-xl ring-2 ring-green-300"
+            : "bg-blue-100 border-blue-400 shadow-lg"
+          : "bg-white border-gray-200"
+      }`}
+    >
       <div className="flex items-center justify-between mb-3">
-        <h3 className={`text-lg font-semibold ${colors.text}`}>{name}</h3>
-        <span className={`text-2xl font-bold ${colors.text}`}>
+        <h3
+          className={`text-lg font-semibold transition-all duration-300 ${
+            animate && color === "red"
+              ? "text-red-800 font-bold"
+              : animate && color === "green"
+              ? "text-green-800 font-bold"
+              : colors.text
+          }`}
+        >
+          {name}
+        </h3>
+        <span
+          className={`text-2xl font-bold transition-all duration-300 ${
+            animate
+              ? color === "red"
+                ? "animate-pulse scale-125 text-red-800 font-extrabold drop-shadow-lg"
+                : color === "green"
+                ? "animate-pulse scale-125 text-green-800 font-extrabold drop-shadow-lg"
+                : "animate-pulse scale-125 text-blue-700 font-extrabold"
+              : colors.text
+          }`}
+        >
           {clampedValue}
         </span>
       </div>

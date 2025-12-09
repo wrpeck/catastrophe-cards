@@ -2,11 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Card as CardType } from "@/types/card";
+import { PinnedCardWithDeck } from "@/types/gameState";
 import Card from "./Card";
-
-interface PinnedCardWithDeck extends CardType {
-  deckTitle: string;
-}
 
 interface Community {
   id: string;
@@ -246,8 +243,7 @@ export default function PinnedCardsBar({
   };
 
   const expandedCard = pinnedCards.find((card) => {
-    const cardKey = `${card.id}-${card.deckTitle}`;
-    return cardKey === expandedCardId;
+    return card.pinnedId === expandedCardId;
   });
 
   const renderCardContainer = (
@@ -314,7 +310,7 @@ export default function PinnedCardsBar({
             </div>
           ) : (
             cards.map((card, index) => {
-              const cardKey = `${card.id}-${card.deckTitle}`;
+              const cardKey = card.pinnedId;
               const isExpanded = cardKey === expandedCardId;
               const assignedPlayer = isIndividualTraits
                 ? getCardPlayerAssignment(card)
@@ -347,7 +343,7 @@ export default function PinnedCardsBar({
                         : card.type === "mixed"
                         ? "bg-gradient-to-br from-green-100 to-red-100"
                         : "bg-white"
-                    } rounded-lg border-2 border-yellow-400 shadow-md px-4 py-3 min-w-[120px] max-w-[200px] cursor-pointer transition-all duration-200 hover:shadow-lg relative ${
+                    } rounded-lg border-2 border-yellow-400 shadow-md px-4 py-3 min-w-[120px] cursor-pointer transition-all duration-200 hover:shadow-lg relative ${
                       isExpanded ? "bg-yellow-50 border-yellow-500" : ""
                     }`}
                   >
@@ -604,7 +600,7 @@ export default function PinnedCardsBar({
                               viewBox="0 0 24 24"
                               fill="currentColor"
                             >
-                              <path d="M16 12V4h1a2 2 0 0 0 0-4H7a2 2 0 1 0 0 4h1v8a2 2 0 0 1-2 2H5a2 2 0 0 0 0 4h14a2 2 0 0 0 0-4h-3a2 2 0 0 1-2-2zm-5-3V4h2v5a1 1 0 1 1-2 0z" />
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                             </svg>
                           </button>
                         </div>

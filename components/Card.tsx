@@ -42,7 +42,7 @@ export default function Card({
 
   return (
     <div
-      className={`${getBackgroundColor()} rounded-lg shadow-md border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-lg relative ${
+      className={`${getBackgroundColor()} rounded-lg shadow-md border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-lg relative w-64 max-w-full ${
         onClick ? "cursor-pointer" : ""
       } ${isPinned ? "ring-2 ring-yellow-400" : ""} ${className}`}
       onClick={onClick}
@@ -51,44 +51,39 @@ export default function Card({
       {showPinButton && (
         <button
           onClick={handlePinClick}
-          className={`absolute top-2 ${
-            card.isTraitEffect ? "right-32" : "right-14"
-          } p-2 rounded-full transition-all duration-200 z-10 ${
+          className={`absolute top-1 right-1 ${
+            card.isTraitEffect ? "top-8" : ""
+          } p-1.5 rounded-full transition-all duration-200 z-10 ${
             isPinned
               ? "bg-yellow-400 text-yellow-900 hover:bg-yellow-500"
               : "bg-gray-200 text-gray-600 hover:bg-gray-300"
           }`}
           aria-label={isPinned ? "Unpin card" : "Pin card"}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
-            <path d="M16 12V4h1a2 2 0 0 0 0-4H7a2 2 0 1 0 0 4h1v8a2 2 0 0 1-2 2H5a2 2 0 0 0 0 4h14a2 2 0 0 0 0-4h-3a2 2 0 0 1-2-2zm-5-3V4h2v5a1 1 0 1 1-2 0z" />
-          </svg>
+          {isPinned ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          )}
         </button>
-      )}
-
-      {/* Trait Effect Icon */}
-      {card.isTraitEffect && (
-        <div
-          className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-100 text-blue-700 z-10"
-          title={`Trait Effect: ${card.isTraitEffect}`}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 shrink-0"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-          </svg>
-          <span className="text-xs font-medium whitespace-nowrap">
-            {card.isTraitEffect}
-          </span>
-        </div>
       )}
 
       {/* Card Name */}
@@ -124,13 +119,17 @@ export default function Card({
           </div>
           {/* Flavor below */}
           {card.flavor && (
-            <div className="px-4 pt-3 pb-6">
-              <p className="text-sm italic text-gray-600 leading-relaxed">
+            <div
+              className={`px-4 pt-3 ${card.isTraitEffect ? "pb-10" : "pb-6"}`}
+            >
+              <p className="text-xs italic text-gray-600 leading-relaxed">
                 {card.flavor}
               </p>
             </div>
           )}
-          {!card.flavor && <div className="pb-6"></div>}
+          {!card.flavor && (
+            <div className={card.isTraitEffect ? "pb-10" : "pb-6"}></div>
+          )}
         </>
       ) : (
         <>
@@ -145,16 +144,42 @@ export default function Card({
 
           {/* Flavor */}
           {card.flavor && (
-            <div className={`px-4 ${card.effect ? "pt-3" : "pt-4"} pb-6`}>
-              <p className="text-sm italic text-gray-600 leading-relaxed">
+            <div
+              className={`px-4 ${card.effect ? "pt-3" : "pt-4"} ${
+                card.isTraitEffect ? "pb-10" : "pb-6"
+              }`}
+            >
+              <p className="text-xs italic text-gray-600 leading-relaxed">
                 {card.flavor}
               </p>
             </div>
           )}
 
           {/* Ensure bottom padding when there's no flavor text */}
-          {!card.flavor && card.effect && <div className="pb-6"></div>}
+          {!card.flavor && card.effect && (
+            <div className={card.isTraitEffect ? "pb-10" : "pb-6"}></div>
+          )}
         </>
+      )}
+
+      {/* Trait Effect Icon - positioned at bottom right */}
+      {card.isTraitEffect && (
+        <div
+          className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-100 text-blue-700 z-10"
+          title={`Trait Effect: ${card.isTraitEffect}`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 shrink-0"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+          </svg>
+          <span className="text-xs font-medium whitespace-nowrap">
+            {card.isTraitEffect}
+          </span>
+        </div>
       )}
     </div>
   );

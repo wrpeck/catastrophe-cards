@@ -17,30 +17,37 @@ export default function RevealedCardStack({
 }: RevealedCardStackProps) {
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
-  const handleCardClick = (card: CardType) => {
-    if (expandedCardId === card.id) {
+  const getCardInstanceId = (card: CardType, index: number) => {
+    return `${card.id}-${index}`;
+  };
+
+  const handleCardClick = (card: CardType, index: number) => {
+    const cardInstanceId = getCardInstanceId(card, index);
+    if (expandedCardId === cardInstanceId) {
       // If already expanded, collapse it
       setExpandedCardId(null);
     } else {
       // Expand this card
-      setExpandedCardId(card.id);
+      setExpandedCardId(cardInstanceId);
     }
   };
 
-  const handleDiscard = (e: React.MouseEvent, card: CardType) => {
+  const handleDiscard = (e: React.MouseEvent, card: CardType, index: number) => {
     e.stopPropagation();
+    const cardInstanceId = getCardInstanceId(card, index);
     onDiscard(card);
     // If the discarded card was expanded, collapse
-    if (expandedCardId === card.id) {
+    if (expandedCardId === cardInstanceId) {
       setExpandedCardId(null);
     }
   };
 
-  const handlePin = (e: React.MouseEvent, card: CardType) => {
+  const handlePin = (e: React.MouseEvent, card: CardType, index: number) => {
     e.stopPropagation();
+    const cardInstanceId = getCardInstanceId(card, index);
     onPin(card);
     // If the pinned card was expanded, collapse
-    if (expandedCardId === card.id) {
+    if (expandedCardId === cardInstanceId) {
       setExpandedCardId(null);
     }
   };
@@ -52,19 +59,18 @@ export default function RevealedCardStack({
   return (
     <div className="space-y-2">
       {cards.map((card, index) => {
-        const isExpanded = expandedCardId === card.id;
+        const cardInstanceId = getCardInstanceId(card, index);
+        const isExpanded = expandedCardId === cardInstanceId;
 
         return (
-          <div key={`${card.id}-${index}`} className="animate-fade-in">
+          <div key={cardInstanceId} className="animate-fade-in">
             {isExpanded ? (
               // Expanded view - full card
               <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden relative">
-                {/* Arrow button - positioned on the right */}
+                {/* Arrow button - positioned in upper right corner */}
                 <button
                   onClick={() => setExpandedCardId(null)}
-                  className={`absolute top-2 ${
-                    card.isTraitEffect ? "right-20" : "right-2"
-                  } p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors z-10`}
+                  className="absolute top-2 right-2 p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors z-10"
                   aria-label="Collapse card"
                   title="Collapse"
                 >
@@ -83,31 +89,28 @@ export default function RevealedCardStack({
                     />
                   </svg>
                 </button>
-                <div onClick={(e) => e.stopPropagation()}>
+                <div onClick={(e) => e.stopPropagation()} className="flex justify-center">
                   <Card
                     card={card}
                     onPin={() => {
                       handlePin(
                         { stopPropagation: () => {} } as React.MouseEvent,
-                        card
+                        card,
+                        index
                       );
                     }}
                     showPinButton={true}
                   />
                 </div>
-                <div className="px-4 pb-4 pt-2 flex gap-2">
-                  <button
-                    onClick={(e) => handleDiscard(e, card)}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 active:scale-95 transition-all duration-200"
-                  >
-                    Discard
-                  </button>
-                  <button
-                    onClick={() => setExpandedCardId(null)}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 active:scale-95 transition-all duration-200"
-                  >
-                    Collapse
-                  </button>
+                <div className="px-4 pb-4 pt-2 flex justify-center">
+                  <div className="w-64 max-w-full">
+                    <button
+                      onClick={(e) => handleDiscard(e, card, index)}
+                      className="w-full px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 active:scale-95 transition-all duration-200"
+                    >
+                      Discard
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -122,7 +125,7 @@ export default function RevealedCardStack({
                     ? "bg-gradient-to-br from-green-100 to-red-100"
                     : "bg-white"
                 } rounded-lg shadow-sm border border-gray-200 px-4 py-3 cursor-pointer hover:shadow-md hover:border-blue-400 transition-all duration-200 flex items-center justify-between group relative`}
-                onClick={() => handleCardClick(card)}
+                onClick={() => handleCardClick(card, index)}
               >
                 {/* Trait Effect Icon */}
                 {card.isTraitEffect && (
@@ -153,7 +156,7 @@ export default function RevealedCardStack({
                 </div>
                 <div className="flex items-center gap-2 ml-3">
                   <button
-                    onClick={(e) => handlePin(e, card)}
+                    onClick={(e) => handlePin(e, card, index)}
                     className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-yellow-600 transition-colors opacity-0 group-hover:opacity-100"
                     aria-label="Pin card"
                     title="Pin card"
@@ -162,13 +165,17 @@ export default function RevealedCardStack({
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-4 w-4"
                       viewBox="0 0 24 24"
-                      fill="currentColor"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      <path d="M16 12V4h1a2 2 0 0 0 0-4H7a2 2 0 1 0 0 4h1v8a2 2 0 0 1-2 2H5a2 2 0 0 0 0 4h14a2 2 0 0 0 0-4h-3a2 2 0 0 1-2-2zm-5-3V4h2v5a1 1 0 1 1-2 0z" />
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
                   </button>
                   <button
-                    onClick={(e) => handleDiscard(e, card)}
+                    onClick={(e) => handleDiscard(e, card, index)}
                     className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                     aria-label="Discard card"
                     title="Discard card"

@@ -73,6 +73,15 @@ export default function Home() {
   const [extraEventCardPlayers, setExtraEventCardPlayers] = useState<
     Set<string>
   >(new Set());
+  const [badgeRound, setBadgeRound] = useState<number | null>(null); // Round when badges were set
+  const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
+  const [turnOrder, setTurnOrder] = useState<(string | "creation")[]>([]);
+  const [roundCounterAnimate, setRoundCounterAnimate] = useState(false); // Animation trigger for round counter
+  const [extinctionCounterAnimate, setExtinctionCounterAnimate] =
+    useState(false); // Animation trigger for extinction counter
+  const [civilizationCounterAnimate, setCivilizationCounterAnimate] =
+    useState(false); // Animation trigger for civilization counter
+  const roundIncrementRef = useRef(false); // Track if round increment triggered extinction increment
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [activeDeckTab, setActiveDeckTab] =
     useState<DeckTab>("individualEvent");
@@ -91,6 +100,15 @@ export default function Home() {
     discardedCards: [],
     drawnCard: null,
   });
+  const [deck1LastDrawPlayerName, setDeck1LastDrawPlayerName] = useState<
+    string | null
+  >(null);
+  const [deck2LastDrawPlayerName, setDeck2LastDrawPlayerName] = useState<
+    string | null
+  >(null);
+  const [deck2LastDrawRound, setDeck2LastDrawRound] = useState<number | null>(
+    null
+  );
   const [deck2State, setDeck2State] = useState<DeckState>({
     availableCards: [],
     revealedCards: [],
@@ -143,7 +161,7 @@ export default function Home() {
               return existing || { name: player.name, resources: 0 };
             });
           setPlayerResources(savedResources);
-          setIsLoadingSettings(false);
+          // Don't set isLoadingSettings to false here - wait for user decision
           setShowLoadPrompt(true);
           return;
         }
@@ -299,6 +317,17 @@ export default function Home() {
   }, []);
 
   const handleDeck1Draw = useCallback(() => {
+    // Get current turn's player name before drawing (only for individual players, not communities)
+    let playerName: string | null = null;
+    if (turnOrder.length > 0 && turnOrder[currentTurnIndex] !== "creation") {
+      const currentTurn = turnOrder[currentTurnIndex];
+      // Only track individual players, not communities
+      const isCommunity = communities.some((c) => c.id === currentTurn);
+      if (!isCommunity) {
+        playerName = currentTurn; // It's a player name
+      }
+    }
+
     setDeck1State((prev) => {
       if (prev.availableCards.length === 0) return prev;
       const randomIndex = Math.floor(
@@ -313,7 +342,12 @@ export default function Home() {
         drawnCard: selectedCard,
       };
     });
-  }, []);
+
+    // Update last draw player name (only if it's an individual player)
+    if (playerName) {
+      setDeck1LastDrawPlayerName(playerName);
+    }
+  }, [turnOrder, currentTurnIndex, communities]);
 
   const handleDeck1Shuffle = useCallback(() => {
     setDeck1State({
@@ -338,6 +372,15 @@ export default function Home() {
   }, []);
 
   const handleDeck2Draw = useCallback(() => {
+    // Get current turn's player/community name before drawing
+    let playerName: string | null = null;
+    if (turnOrder.length > 0 && turnOrder[currentTurnIndex] !== "creation") {
+      const currentTurn = turnOrder[currentTurnIndex];
+      // Check if it's a community ID and resolve to community name
+      const community = communities.find((c) => c.id === currentTurn);
+      playerName = community ? community.name : currentTurn;
+    }
+
     setDeck2State((prev) => {
       if (prev.availableCards.length === 0) return prev;
       const randomIndex = Math.floor(
@@ -352,7 +395,13 @@ export default function Home() {
         drawnCard: selectedCard,
       };
     });
-  }, []);
+
+    // Update last draw player name and round
+    if (playerName) {
+      setDeck2LastDrawPlayerName(playerName);
+      setDeck2LastDrawRound(roundValue);
+    }
+  }, [turnOrder, currentTurnIndex, communities, roundValue]);
 
   const handleDeck2Shuffle = useCallback(() => {
     setDeck2State({
@@ -364,9 +413,18 @@ export default function Home() {
   }, [deck2Cards]);
 
   // Pin/Unpin handlers (must be defined before deck handlers that use them)
-  const handlePin = useCallback((card: CardType, deckTitle: string) => {
-    setPinnedCards((prev) => [...prev, { ...card, deckTitle }]);
-  }, []);
+  const [nextPinnedId, setNextPinnedId] = useState(1);
+
+  const handlePin = useCallback(
+    (card: CardType, deckTitle: string) => {
+      setPinnedCards((prev) => [
+        ...prev,
+        { ...card, deckTitle, pinnedId: `pinned-${nextPinnedId}` },
+      ]);
+      setNextPinnedId((prev) => prev + 1);
+    },
+    [nextPinnedId]
+  );
 
   // Deck handlers - Deck 3 (Individual Traits)
   const handleDeck3CardsLoaded = useCallback((cards: CardType[]) => {
@@ -975,6 +1033,13 @@ export default function Home() {
     setExtinctionValue((prev) =>
       Math.min(settings.extinctionCounterMax, prev + 1)
     );
+    // Trigger animation if not already triggered by round increment
+    if (!roundIncrementRef.current) {
+      setExtinctionCounterAnimate(true);
+      setTimeout(() => {
+        setExtinctionCounterAnimate(false);
+      }, 600);
+    }
   };
 
   const handleExtinctionDecrement = () => {
@@ -989,6 +1054,11 @@ export default function Home() {
     setCivilizationValue((prev) =>
       Math.min(settings.civilizationCounterMax, prev + 1)
     );
+    // Trigger animation on manual increment
+    setCivilizationCounterAnimate(true);
+    setTimeout(() => {
+      setCivilizationCounterAnimate(false);
+    }, 600);
   };
 
   const handleCivilizationDecrement = () => {
@@ -1000,12 +1070,63 @@ export default function Home() {
   };
 
   const handleRoundIncrement = () => {
+    roundIncrementRef.current = true; // Mark that we're doing a round increment
     setRoundValue((prev) => prev + 1);
-    // Clear all badges when round increments
-    setMissingTurnPlayers(new Set());
-    setMissingResourcesPlayers(new Set());
-    setExtraEventCardPlayers(new Set());
+    // Always increment extinction counter when round increments
+    handleExtinctionIncrement();
+    // Trigger animations for both counters after React processes value updates
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setRoundCounterAnimate(true);
+        setExtinctionCounterAnimate(true);
+        // Reset animations after animation completes
+        setTimeout(() => {
+          setRoundCounterAnimate(false);
+          setExtinctionCounterAnimate(false);
+          roundIncrementRef.current = false;
+        }, 600);
+      });
+    });
   };
+
+  // Track badge round and clear badges after two increments
+  useEffect(() => {
+    // Set badgeRound when any badge becomes active
+    const hasAnyBadges =
+      missingTurnPlayers.size > 0 ||
+      missingResourcesPlayers.size > 0 ||
+      extraEventCardPlayers.size > 0;
+    if (hasAnyBadges && badgeRound === null) {
+      setBadgeRound(roundValue);
+    } else if (!hasAnyBadges && badgeRound !== null) {
+      // All badges cleared manually, reset badgeRound
+      setBadgeRound(null);
+    }
+  }, [
+    missingTurnPlayers,
+    missingResourcesPlayers,
+    extraEventCardPlayers,
+    badgeRound,
+    roundValue,
+  ]);
+
+  // Clear badges after two round increments
+  useEffect(() => {
+    if (badgeRound !== null && roundValue >= badgeRound + 2) {
+      setMissingTurnPlayers(new Set());
+      setMissingResourcesPlayers(new Set());
+      setExtraEventCardPlayers(new Set());
+      setBadgeRound(null);
+    }
+  }, [roundValue, badgeRound]);
+
+  // Trigger animations when round increments (via ref tracking)
+  useEffect(() => {
+    if (roundIncrementRef.current) {
+      // Animation state is set in handleRoundIncrement, but this ensures it persists
+      // The ref will be reset after the animation completes
+    }
+  }, [roundValue, extinctionValue]);
 
   const handleRoundDecrement = () => {
     setRoundValue((prev) => Math.max(0, prev - 1));
@@ -1069,7 +1190,7 @@ export default function Home() {
     card: PinnedCardWithDeck,
     playerName: string | null
   ) => {
-    const cardKey = `${card.id}-${card.deckTitle}`;
+    const cardKey = card.pinnedId;
     setCardPlayerAssignments((prev) => {
       const updated = new Map(prev);
       if (playerName === null) {
@@ -1082,7 +1203,7 @@ export default function Home() {
   };
 
   const getCardPlayerAssignment = (card: PinnedCardWithDeck): string | null => {
-    const cardKey = `${card.id}-${card.deckTitle}`;
+    const cardKey = card.pinnedId;
     return cardPlayerAssignments.get(cardKey) || null;
   };
 
@@ -1125,8 +1246,43 @@ export default function Home() {
       resources: totalTransferredResources,
       memberPlayerNames,
     };
-    setCommunities([...communities, newCommunity]);
+    const updatedCommunities = [...communities, newCommunity];
+
+    // If currently on Creation phase and a community was created, move to first community's turn
+    const isOnCreationPhase =
+      turnOrder.length > 0 && turnOrder[currentTurnIndex] === "creation";
+
+    setCommunities(updatedCommunities);
     setNextCommunityId(nextCommunityId + 1);
+
+    // After state updates, if we were on Creation phase, move to the new community's turn
+    if (isOnCreationPhase) {
+      // Compute the new turn order with the updated communities
+      // We need to check which players are in communities using the updated list
+      const playersInCommunities = new Set<string>();
+      updatedCommunities.forEach((community) => {
+        community.memberPlayerNames.forEach((name) => {
+          playersInCommunities.add(name);
+        });
+      });
+
+      const individualPlayers = playerResources.filter(
+        (player) => !playersInCommunities.has(player.name)
+      );
+      if (individualPlayers.length > 0) {
+        const newTurnOrder: (string | "creation")[] = [
+          ...individualPlayers.map((p) => p.name),
+          "creation",
+          ...updatedCommunities.map((c) => c.id),
+        ];
+        const firstCommunityIndex = newTurnOrder.findIndex(
+          (turn) => turn === newCommunity.id
+        );
+        if (firstCommunityIndex !== -1) {
+          setCurrentTurnIndex(firstCommunityIndex);
+        }
+      }
+    }
   };
 
   const handleUpdateCommunity = (
@@ -1223,11 +1379,121 @@ export default function Home() {
     );
   };
 
+  // Compute turn order: individual players (not in communities) → Creation → Communities
+  const computeTurnOrder = useCallback((): (string | "creation")[] => {
+    const order: (string | "creation")[] = [];
+
+    // Add individual players (not in communities)
+    const individualPlayers = playerResources.filter(
+      (player) => !getPlayerCommunity(player.name)
+    );
+    individualPlayers.forEach((player) => {
+      order.push(player.name);
+    });
+
+    // If no individual players exist, return empty array
+    if (individualPlayers.length === 0) {
+      return [];
+    }
+
+    // Add Creation phase
+    order.push("creation");
+
+    // Add community IDs
+    communities.forEach((community) => {
+      order.push(community.id);
+    });
+
+    return order;
+  }, [playerResources, communities]);
+
+  // Recompute turn order when players, communities, or settings change
+  useEffect(() => {
+    const newTurnOrder = computeTurnOrder();
+    setTurnOrder(newTurnOrder);
+
+    // Adjust currentTurnIndex if it's out of bounds
+    setCurrentTurnIndex((prev) => {
+      if (prev >= newTurnOrder.length && newTurnOrder.length > 0) {
+        return 0;
+      } else if (newTurnOrder.length === 0) {
+        return 0;
+      }
+      return prev;
+    });
+  }, [computeTurnOrder]);
+
+  // Helper function to get current turn's display name
+  const getCurrentTurnName = useCallback((): string => {
+    if (turnOrder.length === 0) {
+      return "Unknown";
+    }
+
+    const currentTurn = turnOrder[currentTurnIndex];
+
+    if (currentTurn === "creation") {
+      return "Creation Phase";
+    }
+
+    // Check if it's a community ID
+    const community = communities.find((c) => c.id === currentTurn);
+    if (community) {
+      return community.name;
+    }
+
+    // Otherwise it's a player name
+    return currentTurn;
+  }, [turnOrder, currentTurnIndex, communities]);
+
+  // Turn tracker handlers
+  const handleTurnIncrement = () => {
+    if (turnOrder.length === 0) return;
+
+    const currentIndex = currentTurnIndex;
+    const nextIndex = currentIndex + 1;
+    const isAtLastIndex = currentIndex === turnOrder.length - 1;
+
+    // If at end, wrap around and increment round counter
+    if (nextIndex >= turnOrder.length) {
+      const hasCommunities = communities.length > 0;
+      const wrappedIndex = hasCommunities ? nextIndex % turnOrder.length : 0;
+
+      // If wrapping around (reached end of turn order), increment round
+      // (handleRoundIncrement will also increment extinction and trigger animations)
+      if (isAtLastIndex) {
+        handleRoundIncrement();
+
+        // If at least one community exists, increment civilization counter by 1
+        if (communities.length > 0) {
+          handleCivilizationIncrement();
+        }
+      }
+
+      setCurrentTurnIndex(wrappedIndex);
+    } else {
+      setCurrentTurnIndex(nextIndex);
+    }
+  };
+
+  const handleTurnDecrement = () => {
+    if (turnOrder.length === 0) return;
+
+    setCurrentTurnIndex((prev) => {
+      const newIndex = prev - 1;
+      // Wrap around to end if going below 0
+      return newIndex < 0 ? turnOrder.length - 1 : newIndex;
+    });
+  };
+
+  const handleTurnReset = () => {
+    setCurrentTurnIndex(0);
+  };
+
   const handleAssignCommunityTrait = (
     card: PinnedCardWithDeck,
     communityId: string | null
   ) => {
-    const cardKey = `${card.id}-${card.deckTitle}`;
+    const cardKey = card.pinnedId;
     setCommunityTraitAssignments((prev) => {
       const updated = new Map(prev);
       if (communityId === null) {
@@ -1242,7 +1508,7 @@ export default function Home() {
   const getCommunityTraitAssignment = (
     card: PinnedCardWithDeck
   ): string | null => {
-    const cardKey = `${card.id}-${card.deckTitle}`;
+    const cardKey = card.pinnedId;
     return communityTraitAssignments.get(cardKey) || null;
   };
 
@@ -1282,6 +1548,7 @@ export default function Home() {
       playerResources,
       communities,
       nextCommunityId,
+      nextPinnedId,
       pinnedCards,
       cardPlayerAssignments: Array.from(cardPlayerAssignments.entries()),
       communityTraitAssignments: Array.from(
@@ -1290,6 +1557,9 @@ export default function Home() {
       missingTurnPlayers: Array.from(missingTurnPlayers),
       missingResourcesPlayers: Array.from(missingResourcesPlayers),
       extraEventCardPlayers: Array.from(extraEventCardPlayers),
+      badgeRound,
+      currentTurnIndex,
+      turnOrder,
       individualEventDeck: deck1State,
       communityEventDeck: deck2State,
       individualTraitsDeck: deck3State,
@@ -1305,12 +1575,16 @@ export default function Home() {
     playerResources,
     communities,
     nextCommunityId,
+    nextPinnedId,
     pinnedCards,
     cardPlayerAssignments,
     communityTraitAssignments,
     missingTurnPlayers,
     missingResourcesPlayers,
     extraEventCardPlayers,
+    badgeRound,
+    currentTurnIndex,
+    turnOrder,
     deck1State,
     deck2State,
     deck3State,
@@ -1337,12 +1611,36 @@ export default function Home() {
     setPlayerResources(state.playerResources);
     setCommunities(state.communities);
     setNextCommunityId(state.nextCommunityId);
-    setPinnedCards(state.pinnedCards);
+    setNextPinnedId(state.nextPinnedId ?? 1);
+    // Handle backward compatibility: if pinned cards don't have pinnedId, generate them
+    const pinnedCardsWithIds = state.pinnedCards.map((card, index) => {
+      if (!card.pinnedId) {
+        return {
+          ...card,
+          pinnedId: `pinned-${(state.nextPinnedId ?? 1) + index}`,
+        };
+      }
+      return card;
+    });
+    setPinnedCards(pinnedCardsWithIds);
+    // Update nextPinnedId to be higher than any existing pinnedId
+    if (pinnedCardsWithIds.length > 0) {
+      const maxId = Math.max(
+        ...pinnedCardsWithIds.map((card) => {
+          const match = card.pinnedId.match(/pinned-(\d+)/);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+      );
+      setNextPinnedId(maxId + 1);
+    }
     setCardPlayerAssignments(new Map(state.cardPlayerAssignments));
     setCommunityTraitAssignments(new Map(state.communityTraitAssignments));
     setMissingTurnPlayers(new Set(state.missingTurnPlayers || []));
     setMissingResourcesPlayers(new Set(state.missingResourcesPlayers || []));
     setExtraEventCardPlayers(new Set(state.extraEventCardPlayers || []));
+    setBadgeRound(state.badgeRound ?? null);
+    setCurrentTurnIndex(state.currentTurnIndex ?? 0);
+    setTurnOrder(state.turnOrder ?? []);
     setDeck1State(state.individualEventDeck);
     setDeck2State(state.communityEventDeck);
     setDeck3State(state.individualTraitsDeck);
@@ -1353,7 +1651,7 @@ export default function Home() {
 
   // Auto-save with debounce
   useEffect(() => {
-    if (isLoadingSettings || isLoadingGame) return;
+    if (isLoadingSettings || isLoadingGame || showLoadPrompt) return;
 
     const timeoutId = setTimeout(() => {
       try {
@@ -1365,7 +1663,7 @@ export default function Home() {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [buildGameState, isLoadingSettings, isLoadingGame]);
+  }, [buildGameState, isLoadingSettings, isLoadingGame, showLoadPrompt]);
 
   const handleLoadGame = useCallback(() => {
     setIsLoadingGame(true);
@@ -1379,15 +1677,15 @@ export default function Home() {
       alert("Failed to load saved game. Please try again.");
     } finally {
       setIsLoadingGame(false);
+      setIsLoadingSettings(false); // Allow UI to render after loading
       setShowLoadPrompt(false);
     }
   }, [restoreGameState]);
 
   const handleDismissLoadPrompt = useCallback(() => {
-    setShowLoadPrompt(false);
-  }, []);
+    // Clear localStorage and reset game state when starting new
+    clearGameState();
 
-  const handleNewGame = useCallback(() => {
     // Reset all game state to initial values
     setExtinctionValue(0);
     setCivilizationValue(0);
@@ -1398,15 +1696,22 @@ export default function Home() {
     setMissingTurnPlayers(new Set());
     setMissingResourcesPlayers(new Set());
     setExtraEventCardPlayers(new Set());
+    setBadgeRound(null);
+    setCurrentTurnIndex(0);
+    setTurnOrder([]);
     setCommunities([]);
     setNextCommunityId(1);
+    setNextPinnedId(1);
+    setDeck1LastDrawPlayerName(null);
+    setDeck2LastDrawPlayerName(null);
+    setDeck2LastDrawRound(null);
 
     // Reset player resources to 0
     setPlayerResources((prev) =>
       prev.map((player) => ({ ...player, resources: 0 }))
     );
 
-    // Reset all deck states - wait for cards to be loaded
+    // Reset all deck states
     if (deck1Cards.length > 0) {
       setDeck1State({
         availableCards: initializeCardPool(deck1Cards),
@@ -1443,6 +1748,88 @@ export default function Home() {
       setDeck5State({
         availableCards: initializeCardPool(deck5Cards),
         revealedCards: [],
+        discardedCards: [],
+        drawnCard: null,
+      });
+    }
+
+    setActiveDeckTab("individualEvent");
+    setIsLoadingSettings(false); // Allow UI to render after dismissing
+    setShowLoadPrompt(false);
+  }, [deck1Cards, deck2Cards, deck3Cards, deck4Cards, deck5Cards]);
+
+  const handleNewGame = useCallback(() => {
+    // Reset all game state to initial values
+    setExtinctionValue(0);
+    setCivilizationValue(0);
+    setRoundValue(0);
+    setPinnedCards([]);
+    setCardPlayerAssignments(new Map());
+    setCommunityTraitAssignments(new Map());
+    setMissingTurnPlayers(new Set());
+    setMissingResourcesPlayers(new Set());
+    setExtraEventCardPlayers(new Set());
+    setBadgeRound(null);
+    setCurrentTurnIndex(0);
+    setTurnOrder([]); // Explicitly reset turn order
+    setCommunities([]);
+    setNextCommunityId(1);
+    setNextPinnedId(1);
+    setDeck1LastDrawPlayerName(null);
+    setDeck2LastDrawPlayerName(null);
+    setDeck2LastDrawRound(null);
+
+    // Reset player resources to 0
+    setPlayerResources((prev) =>
+      prev.map((player) => ({ ...player, resources: 0 }))
+    );
+
+    // Reset all deck states - wait for cards to be loaded
+    if (deck1Cards.length > 0) {
+      setDeck1State({
+        availableCards: initializeCardPool(deck1Cards),
+        revealedCards: [],
+        discardedCards: [],
+        drawnCard: null,
+      });
+    }
+    if (deck2Cards.length > 0) {
+      setDeck2State({
+        availableCards: initializeCardPool(deck2Cards),
+        revealedCards: [],
+        discardedCards: [],
+        drawnCard: null,
+      });
+    }
+    if (deck3Cards.length > 0) {
+      const deck3AvailableCards = initializeCardPool(deck3Cards);
+      const { selected: deck3Revealed, remaining: deck3Remaining } =
+        getRandomCards(3, deck3AvailableCards);
+      setDeck3State({
+        availableCards: deck3Remaining,
+        revealedCards: deck3Revealed,
+        discardedCards: [],
+        drawnCard: null,
+      });
+    }
+    if (deck4Cards.length > 0) {
+      const deck4AvailableCards = initializeCardPool(deck4Cards);
+      const { selected: deck4Revealed, remaining: deck4Remaining } =
+        getRandomCards(3, deck4AvailableCards);
+      setDeck4State({
+        availableCards: deck4Remaining,
+        revealedCards: deck4Revealed,
+        discardedCards: [],
+        drawnCard: null,
+      });
+    }
+    if (deck5Cards.length > 0) {
+      const deck5AvailableCards = initializeCardPool(deck5Cards);
+      const { selected: deck5Revealed, remaining: deck5Remaining } =
+        getRandomCards(3, deck5AvailableCards);
+      setDeck5State({
+        availableCards: deck5Remaining,
+        revealedCards: deck5Revealed,
         discardedCards: [],
         drawnCard: null,
       });
@@ -1486,7 +1873,11 @@ export default function Home() {
             <PageBody
               leftSidebar={
                 <div className="space-y-4">
-                  <DiceRoller />
+                  <DiceRoller
+                    currentTurnIndex={currentTurnIndex}
+                    turnOrder={turnOrder}
+                    communities={communities}
+                  />
                   {!isLoadingSettings && (
                     <PlayerTracker
                       players={playerResources}
@@ -1506,20 +1897,28 @@ export default function Home() {
                       onToggleMissingResources={handleToggleMissingResources}
                       extraEventCardPlayers={extraEventCardPlayers}
                       onToggleExtraEventCard={handleToggleExtraEventCard}
+                      currentTurnIndex={currentTurnIndex}
+                      turnOrder={turnOrder}
+                      pinnedCards={pinnedCards}
+                      cardPlayerAssignments={cardPlayerAssignments}
+                      communityTraitAssignments={communityTraitAssignments}
                     />
                   )}
                 </div>
               }
               rightSidebar={
                 !isLoadingSettings ? (
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit sticky top-8">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit">
                     <CountersContent
                       roundValue={roundValue}
                       onRoundIncrement={handleRoundIncrement}
                       onRoundDecrement={handleRoundDecrement}
                       onRoundReset={handleRoundReset}
+                      roundCounterAnimate={roundCounterAnimate}
                       extinctionValue={extinctionValue}
+                      extinctionCounterAnimate={extinctionCounterAnimate}
                       civilizationValue={civilizationValue}
+                      civilizationCounterAnimate={civilizationCounterAnimate}
                       extinctionMax={settings.extinctionCounterMax}
                       civilizationMax={settings.civilizationCounterMax}
                       onExtinctionIncrement={handleExtinctionIncrement}
@@ -1533,6 +1932,12 @@ export default function Home() {
                       onNewGame={handleNewGame}
                       settings={settings}
                       onSettingsChange={handleSettingsChange}
+                      currentTurnIndex={currentTurnIndex}
+                      turnOrder={turnOrder}
+                      onTurnIncrement={handleTurnIncrement}
+                      onTurnDecrement={handleTurnDecrement}
+                      onTurnReset={handleTurnReset}
+                      communities={communities}
                     />
                   </div>
                 ) : null
@@ -1552,6 +1957,7 @@ export default function Home() {
                       onDraw={handleDeck1Draw}
                       onShuffle={handleDeck1Shuffle}
                       onCardsLoaded={handleDeck1CardsLoaded}
+                      lastDrawPlayerName={deck1LastDrawPlayerName}
                     />
                   ),
                   communityEvent: (
@@ -1563,6 +1969,8 @@ export default function Home() {
                       onDraw={handleDeck2Draw}
                       onShuffle={handleDeck2Shuffle}
                       onCardsLoaded={handleDeck2CardsLoaded}
+                      lastDrawPlayerName={deck2LastDrawPlayerName}
+                      lastDrawRound={deck2LastDrawRound}
                     />
                   ),
                   individualTraits: (
@@ -1646,8 +2054,11 @@ export default function Home() {
           onRoundIncrement={handleRoundIncrement}
           onRoundDecrement={handleRoundDecrement}
           onRoundReset={handleRoundReset}
+          roundCounterAnimate={roundCounterAnimate}
           extinctionValue={extinctionValue}
+          extinctionCounterAnimate={extinctionCounterAnimate}
           civilizationValue={civilizationValue}
+          civilizationCounterAnimate={civilizationCounterAnimate}
           extinctionMax={settings.extinctionCounterMax}
           civilizationMax={settings.civilizationCounterMax}
           onExtinctionIncrement={handleExtinctionIncrement}
@@ -1661,6 +2072,12 @@ export default function Home() {
           onNewGame={handleNewGame}
           settings={settings}
           onSettingsChange={handleSettingsChange}
+          currentTurnIndex={currentTurnIndex}
+          turnOrder={turnOrder}
+          onTurnIncrement={handleTurnIncrement}
+          onTurnDecrement={handleTurnDecrement}
+          onTurnReset={handleTurnReset}
+          communities={communities}
         />
       )}
     </>

@@ -4,15 +4,19 @@ import { useState } from "react";
 import GameCounter from "./GameCounter";
 import SaveLoadControls from "./SaveLoadControls";
 import SettingsEditor from "./SettingsEditor";
-import { GameState, Settings } from "@/types/gameState";
+import TurnTracker from "./TurnTracker";
+import { GameState, Settings, Community } from "@/types/gameState";
 
 interface CountersContentProps {
   roundValue: number;
   onRoundIncrement: () => void;
   onRoundDecrement: () => void;
   onRoundReset: () => void;
+  roundCounterAnimate?: boolean;
   extinctionValue: number;
+  extinctionCounterAnimate?: boolean;
   civilizationValue: number;
+  civilizationCounterAnimate?: boolean;
   extinctionMax: number;
   civilizationMax: number;
   onExtinctionIncrement: () => void;
@@ -26,6 +30,12 @@ interface CountersContentProps {
   onNewGame: () => void;
   settings: Settings;
   onSettingsChange: (settings: Settings) => void;
+  currentTurnIndex: number;
+  turnOrder: (string | "creation")[];
+  onTurnIncrement: () => void;
+  onTurnDecrement: () => void;
+  onTurnReset: () => void;
+  communities: Community[];
 }
 
 export default function CountersContent({
@@ -33,8 +43,11 @@ export default function CountersContent({
   onRoundIncrement,
   onRoundDecrement,
   onRoundReset,
+  roundCounterAnimate = false,
   extinctionValue,
+  extinctionCounterAnimate = false,
   civilizationValue,
+  civilizationCounterAnimate = false,
   extinctionMax,
   civilizationMax,
   onExtinctionIncrement,
@@ -48,8 +61,16 @@ export default function CountersContent({
   onNewGame,
   settings,
   onSettingsChange,
+  currentTurnIndex,
+  turnOrder,
+  onTurnIncrement,
+  onTurnDecrement,
+  onTurnReset,
+  communities,
 }: CountersContentProps) {
-  const [activeTab, setActiveTab] = useState<"counters" | "settings">("counters");
+  const [activeTab, setActiveTab] = useState<"counters" | "settings">(
+    "counters"
+  );
 
   return (
     <div className="h-full overflow-y-auto p-4">
@@ -81,7 +102,13 @@ export default function CountersContent({
       {activeTab === "counters" && (
         <div className="space-y-4">
           {/* Round Counter */}
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <div
+            className={`rounded-lg p-4 border-2 transition-all duration-300 ${
+              roundCounterAnimate
+                ? "bg-blue-100 border-blue-400 shadow-lg"
+                : "bg-gray-50 border-gray-200"
+            }`}
+          >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-700">Round</h3>
               <button
@@ -113,7 +140,13 @@ export default function CountersContent({
                   />
                 </svg>
               </button>
-              <div className="text-3xl font-bold text-gray-900 min-w-[60px] text-center">
+              <div
+                className={`text-3xl font-bold min-w-[60px] text-center transition-all duration-300 ${
+                  roundCounterAnimate
+                    ? "animate-pulse scale-125 text-blue-700 font-extrabold"
+                    : "text-gray-900"
+                }`}
+              >
                 {roundValue}
               </div>
               <button
@@ -136,6 +169,14 @@ export default function CountersContent({
               </button>
             </div>
           </div>
+          <TurnTracker
+            currentTurnIndex={currentTurnIndex}
+            turnOrder={turnOrder}
+            onTurnIncrement={onTurnIncrement}
+            onTurnDecrement={onTurnDecrement}
+            onTurnReset={onTurnReset}
+            communities={communities}
+          />
           <GameCounter
             name="Extinction"
             color="red"
@@ -144,15 +185,17 @@ export default function CountersContent({
             onIncrement={onExtinctionIncrement}
             onDecrement={onExtinctionDecrement}
             onReset={onExtinctionReset}
+            animate={extinctionCounterAnimate}
           />
           <GameCounter
             name="Civilization"
-            color="blue"
+            color="green"
             maxDots={civilizationMax}
             value={civilizationValue}
             onIncrement={onCivilizationIncrement}
             onDecrement={onCivilizationDecrement}
             onReset={onCivilizationReset}
+            animate={civilizationCounterAnimate}
           />
         </div>
       )}

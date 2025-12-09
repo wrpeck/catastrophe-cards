@@ -1,16 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { Community } from "@/types/gameState";
+
+interface DiceRollerProps {
+  currentTurnIndex: number;
+  turnOrder: (string | "creation")[];
+  communities: Community[];
+}
 
 type DiceMode = "resource" | "d6";
 
-export default function DiceRoller() {
+export default function DiceRoller({
+  currentTurnIndex,
+  turnOrder,
+  communities,
+}: DiceRollerProps) {
   const [mode, setMode] = useState<DiceMode>("resource");
 
   // Resource roll state
   const [value, setValue] = useState<number | null>(null);
   const [isRolling, setIsRolling] = useState(false);
   const [displayValue, setDisplayValue] = useState<number | null>(null);
+  const [lastRollTurn, setLastRollTurn] = useState<string | null>(null);
 
   // D6 roll state
   const [numDice, setNumDice] = useState<number | null>(1);
@@ -24,6 +36,29 @@ export default function DiceRoller() {
     new Set()
   );
   const [isRerolling, setIsRerolling] = useState(false);
+  const [lastD6RollTurn, setLastD6RollTurn] = useState<string | null>(null);
+
+  // Helper function to get current turn's display name
+  const getCurrentTurnName = (): string => {
+    if (turnOrder.length === 0) {
+      return "Unknown";
+    }
+
+    const currentTurn = turnOrder[currentTurnIndex];
+
+    if (currentTurn === "creation") {
+      return "Creation Phase";
+    }
+
+    // Check if it's a community ID
+    const community = communities.find((c) => c.id === currentTurn);
+    if (community) {
+      return community.name;
+    }
+
+    // Otherwise it's a player name
+    return currentTurn;
+  };
 
   // Possible values: 0, 1, or 2
   const possibleValues = [0, 1, 2];
@@ -54,6 +89,7 @@ export default function DiceRoller() {
           possibleValues[Math.floor(Math.random() * possibleValues.length)];
         setValue(finalValue);
         setDisplayValue(finalValue);
+        setLastRollTurn(getCurrentTurnName());
         setIsRolling(false);
       }
     }, updateInterval);
@@ -92,6 +128,7 @@ export default function DiceRoller() {
         );
         setD6Results(finalResults);
         setD6DisplayResults(finalResults);
+        setLastD6RollTurn(getCurrentTurnName());
         setIsRollingD6(false);
       }
     }, updateInterval);
@@ -217,6 +254,9 @@ export default function DiceRoller() {
           {value !== null && !isRolling && (
             <p className="text-sm text-gray-600">
               Last roll: <span className="font-semibold">{value}</span>
+              {lastRollTurn && (
+                <span className="text-gray-500"> ({lastRollTurn})</span>
+              )}
             </p>
           )}
         </div>
@@ -261,10 +301,17 @@ export default function DiceRoller() {
                 ))}
               </div>
               {!isRollingD6 && (
-                <p className="text-center text-sm text-gray-600">
-                  Total:{" "}
-                  <span className="font-semibold text-lg">{d6Total}</span>
-                </p>
+                <div className="text-center space-y-1">
+                  <p className="text-sm text-gray-600">
+                    Total:{" "}
+                    <span className="font-semibold text-lg">{d6Total}</span>
+                  </p>
+                  {lastD6RollTurn && (
+                    <p className="text-xs text-gray-500">
+                      Last roll: ({lastD6RollTurn})
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           )}

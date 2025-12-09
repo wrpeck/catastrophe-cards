@@ -2,15 +2,18 @@
 
 import { useState, useEffect } from "react";
 import CountersContent from "./CountersContent";
-import { GameState, Settings } from "@/types/gameState";
+import { GameState, Settings, Community } from "@/types/gameState";
 
 interface CountersSidebarProps {
   roundValue: number;
   onRoundIncrement: () => void;
   onRoundDecrement: () => void;
   onRoundReset: () => void;
+  roundCounterAnimate?: boolean;
   extinctionValue: number;
+  extinctionCounterAnimate?: boolean;
   civilizationValue: number;
+  civilizationCounterAnimate?: boolean;
   extinctionMax: number;
   civilizationMax: number;
   onExtinctionIncrement: () => void;
@@ -24,6 +27,12 @@ interface CountersSidebarProps {
   onNewGame: () => void;
   settings: Settings;
   onSettingsChange: (settings: Settings) => void;
+  currentTurnIndex: number;
+  turnOrder: (string | "creation")[];
+  onTurnIncrement: () => void;
+  onTurnDecrement: () => void;
+  onTurnReset: () => void;
+  communities: Community[];
 }
 
 export default function CountersSidebar({
@@ -31,8 +40,11 @@ export default function CountersSidebar({
   onRoundIncrement,
   onRoundDecrement,
   onRoundReset,
+  roundCounterAnimate = false,
   extinctionValue,
+  extinctionCounterAnimate = false,
   civilizationValue,
+  civilizationCounterAnimate = false,
   extinctionMax,
   civilizationMax,
   onExtinctionIncrement,
@@ -46,6 +58,12 @@ export default function CountersSidebar({
   onNewGame,
   settings,
   onSettingsChange,
+  currentTurnIndex,
+  turnOrder,
+  onTurnIncrement,
+  onTurnDecrement,
+  onTurnReset,
+  communities,
 }: CountersSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -130,8 +148,11 @@ export default function CountersSidebar({
             onRoundIncrement={onRoundIncrement}
             onRoundDecrement={onRoundDecrement}
             onRoundReset={onRoundReset}
+            roundCounterAnimate={roundCounterAnimate}
             extinctionValue={extinctionValue}
+            extinctionCounterAnimate={extinctionCounterAnimate}
             civilizationValue={civilizationValue}
+            civilizationCounterAnimate={civilizationCounterAnimate}
             extinctionMax={extinctionMax}
             civilizationMax={civilizationMax}
             onExtinctionIncrement={onExtinctionIncrement}
@@ -145,6 +166,12 @@ export default function CountersSidebar({
             onNewGame={onNewGame}
             settings={settings}
             onSettingsChange={onSettingsChange}
+            currentTurnIndex={currentTurnIndex}
+            turnOrder={turnOrder}
+            onTurnIncrement={onTurnIncrement}
+            onTurnDecrement={onTurnDecrement}
+            onTurnReset={onTurnReset}
+            communities={communities}
           />
         </div>
       </div>

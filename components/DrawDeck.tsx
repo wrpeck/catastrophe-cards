@@ -12,6 +12,8 @@ interface DrawDeckProps {
   onDraw: () => void;
   onShuffle: () => void;
   onCardsLoaded?: (cards: CardType[]) => void;
+  lastDrawPlayerName?: string | null;
+  lastDrawRound?: number | null;
 }
 
 export default function DrawDeck({
@@ -22,6 +24,8 @@ export default function DrawDeck({
   onDraw,
   onShuffle,
   onCardsLoaded,
+  lastDrawPlayerName,
+  lastDrawRound,
 }: DrawDeckProps) {
   // Load cards from JSON file and notify parent
   useEffect(() => {
@@ -81,11 +85,19 @@ export default function DrawDeck({
       </div>
 
       {drawnCard && (
-        <div className="mt-4 animate-fade-in">
+        <div className="mt-4 animate-fade-in flex flex-col items-center gap-2">
           <Card card={drawnCard} />
+          {lastDrawPlayerName && (
+            <p className="text-sm text-gray-600">
+              Last Draw:{" "}
+              <span className="font-semibold">{lastDrawPlayerName}</span>
+              {lastDrawRound !== null && lastDrawRound !== undefined && (
+                <span className="text-gray-500"> (Round {lastDrawRound})</span>
+              )}
+            </p>
+          )}
         </div>
       )}
     </div>
   );
 }
-

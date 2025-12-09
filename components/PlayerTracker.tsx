@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CommunitiesTracker from "./CommunitiesTracker";
+import { PinnedCardWithDeck } from "@/types/gameState";
 
 interface Player {
   name: string;
@@ -38,6 +39,11 @@ interface PlayerTrackerProps {
   onToggleMissingResources: (playerName: string) => void;
   extraEventCardPlayers: Set<string>;
   onToggleExtraEventCard: (playerName: string) => void;
+  currentTurnIndex: number;
+  turnOrder: (string | "creation")[];
+  pinnedCards: PinnedCardWithDeck[];
+  cardPlayerAssignments: Map<string, string>;
+  communityTraitAssignments: Map<string, string>;
 }
 
 export default function PlayerTracker({
@@ -58,6 +64,11 @@ export default function PlayerTracker({
   onToggleMissingResources,
   extraEventCardPlayers,
   onToggleExtraEventCard,
+  currentTurnIndex,
+  turnOrder,
+  pinnedCards,
+  cardPlayerAssignments,
+  communityTraitAssignments,
 }: PlayerTrackerProps) {
   const [activeTab, setActiveTab] = useState<"players" | "communities">(
     "players"
@@ -130,15 +141,46 @@ export default function PlayerTracker({
             <div className="space-y-3">
               {players.map((player, index) => {
                 const playerCommunity = getPlayerCommunity(player.name);
+                const isCurrentTurn =
+                  turnOrder.length > 0 &&
+                  turnOrder[currentTurnIndex] === player.name;
+
+                // Get assigned Individual Traits for this player
+                const assignedTraits = pinnedCards
+                  .filter((card) => card.deckTitle === "Individual Traits")
+                  .filter((card) => {
+                    const cardKey = card.pinnedId;
+                    return cardPlayerAssignments.get(cardKey) === player.name;
+                  });
+
                 return (
                   <div
                     key={index}
-                    className="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    className={`flex flex-col gap-2 p-3 bg-gray-50 rounded-lg border-2 transition-colors ${
+                      isCurrentTurn
+                        ? "border-yellow-400 bg-yellow-50"
+                        : "border-gray-200"
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-gray-900 break-words flex-1">
-                        {player.name}
-                      </p>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 break-words">
+                          {player.name}
+                        </p>
+                        {assignedTraits.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {assignedTraits.map((trait, traitIndex) => (
+                              <span
+                                key={`${player.name}-${trait.id}-${trait.deckTitle}-${traitIndex}`}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                                title={trait.displayName}
+                              >
+                                {trait.displayName}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <button
                         onClick={() => handleReset(index)}
                         disabled={player.resources === 0}
@@ -283,6 +325,10 @@ export default function PlayerTracker({
           onCreateCommunity={onCreateCommunity}
           playerResources={playerResources}
           communityCostPerMember={communityCostPerMember}
+          currentTurnIndex={currentTurnIndex}
+          turnOrder={turnOrder}
+          pinnedCards={pinnedCards}
+          communityTraitAssignments={communityTraitAssignments}
         />
       )}
     </div>
