@@ -340,6 +340,8 @@ export default function PlayerTracker({
           onCreateCommunity={onCreateCommunity}
           playerResources={playerResources}
           communityCostPerMember={communityCostPerMember}
+          roundValue={roundValue}
+          soloRounds={soloRounds}
           currentTurnIndex={currentTurnIndex}
           turnOrder={turnOrder}
           pinnedCards={pinnedCards}
