@@ -15,6 +15,11 @@ export default function SettingsEditor({
   const [localSettings, setLocalSettings] = useState<Settings>(settings);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Sync localSettings when settings prop changes
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
+
   const handleExtinctionMaxChange = (value: number) => {
     const updated = { ...localSettings, extinctionCounterMax: value };
     setLocalSettings(updated);
@@ -31,6 +36,13 @@ export default function SettingsEditor({
 
   const handleCommunityCostPerMemberChange = (value: number) => {
     const updated = { ...localSettings, communityCostPerMember: value };
+    setLocalSettings(updated);
+    setHasChanges(true);
+    onSettingsChange(updated);
+  };
+
+  const handleSoloRoundsChange = (value: number) => {
+    const updated = { ...localSettings, soloRounds: value };
     setLocalSettings(updated);
     setHasChanges(true);
     onSettingsChange(updated);
@@ -118,6 +130,22 @@ export default function SettingsEditor({
             value={localSettings.communityCostPerMember}
             onChange={(e) =>
               handleCommunityCostPerMemberChange(parseInt(e.target.value) || 0)
+            }
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Solo Rounds
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={localSettings.soloRounds}
+            onChange={(e) =>
+              handleSoloRoundsChange(parseInt(e.target.value) || 0)
             }
             className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

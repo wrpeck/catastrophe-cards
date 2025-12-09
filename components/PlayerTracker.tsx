@@ -33,12 +33,15 @@ interface PlayerTrackerProps {
   getPlayerCommunity: (playerName: string) => Community | null;
   playerResources: Player[];
   communityCostPerMember: number;
+  roundValue: number;
+  soloRounds: number;
   missingTurnPlayers: Set<string>;
   onToggleMissingTurn: (playerName: string) => void;
   missingResourcesPlayers: Set<string>;
   onToggleMissingResources: (playerName: string) => void;
   extraEventCardPlayers: Set<string>;
   onToggleExtraEventCard: (playerName: string) => void;
+  wandererPlayers: Set<string>;
   currentTurnIndex: number;
   turnOrder: (string | "creation")[];
   pinnedCards: PinnedCardWithDeck[];
@@ -58,12 +61,15 @@ export default function PlayerTracker({
   getPlayerCommunity,
   playerResources,
   communityCostPerMember,
+  roundValue,
+  soloRounds,
   missingTurnPlayers,
   onToggleMissingTurn,
   missingResourcesPlayers,
   onToggleMissingResources,
   extraEventCardPlayers,
   onToggleExtraEventCard,
+  wandererPlayers,
   currentTurnIndex,
   turnOrder,
   pinnedCards,
@@ -256,6 +262,15 @@ export default function PlayerTracker({
                       >
                         🎴 Extra
                       </button>
+                      {/* Wanderer Badge */}
+                      {wandererPlayers.has(player.name) && (
+                        <span
+                          className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800"
+                          title="Wanderer: All other players are in communities"
+                        >
+                          🚶 Wanderer
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 justify-end">

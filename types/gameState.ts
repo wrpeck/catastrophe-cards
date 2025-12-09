@@ -28,6 +28,7 @@ export interface Settings {
   extinctionCounterMax: number;
   civilizationCounterMax: number;
   communityCostPerMember: number;
+  soloRounds: number;
   players: { name: string }[];
 }
 
@@ -60,6 +61,7 @@ export interface GameState {
   missingTurnPlayers: string[]; // Player names with missing turn badge
   missingResourcesPlayers: string[]; // Player names with missing resources badge
   extraEventCardPlayers: string[]; // Player names with extra event card badge
+  wandererPlayers: string[]; // Player names with wanderer badge (auto-managed)
   badgeRound: number | null; // Round when badges were set (for clearing after 2 increments)
   
   // Turn Tracker
@@ -72,8 +74,9 @@ export interface GameState {
   individualTraitsDeck: DeckState;
   communityTraitsDeck: DeckState;
   desperateMeasuresDeck: DeckState;
+  wandererDeck: DeckState;
   
   // UI State
-  activeDeckTab: "individualEvent" | "communityEvent" | "individualTraits" | "communityTraits" | "desperateMeasures";
+  activeDeckTab: "individualEvent" | "communityEvent" | "individualTraits" | "communityTraits" | "desperateMeasures" | "wanderer";
 }
 

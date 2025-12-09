@@ -2,6 +2,7 @@
   "extinctionCounterMax": 20,
   "civilizationCounterMax": 20,
   "communityCostPerMember": 1,
+  "soloRounds": 4,
   "players": [
     {
       "name": "Wesley"

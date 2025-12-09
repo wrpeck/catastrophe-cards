@@ -25,6 +25,8 @@ interface CommunitiesTrackerProps {
   onCreateCommunity: (name: string, memberPlayerNames: string[], optOutPlayers: string[], waivedCostPlayers: string[]) => void;
   playerResources: PlayerResource[];
   communityCostPerMember: number;
+  roundValue: number;
+  soloRounds: number;
   currentTurnIndex: number;
   turnOrder: (string | "creation")[];
   pinnedCards: PinnedCardWithDeck[];
@@ -40,6 +42,8 @@ export default function CommunitiesTracker({
   onCreateCommunity,
   playerResources,
   communityCostPerMember,
+  roundValue,
+  soloRounds,
   currentTurnIndex,
   turnOrder,
   pinnedCards,
@@ -159,7 +163,17 @@ export default function CommunitiesTracker({
           <h3 className="text-lg font-bold text-gray-700">Communities</h3>
           <button
             onClick={handleCreate}
-            className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1"
+            disabled={roundValue <= soloRounds}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1 ${
+              roundValue <= soloRounds
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-blue-600 text-white hover:bg-blue-700"
+            }`}
+            title={
+              roundValue <= soloRounds
+                ? `Communities cannot be created until round ${soloRounds + 1}`
+                : "Create a new community"
+            }
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

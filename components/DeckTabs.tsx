@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 
-export type DeckTab = "individualEvent" | "communityEvent" | "individualTraits" | "communityTraits" | "desperateMeasures";
+export type DeckTab = "individualEvent" | "communityEvent" | "individualTraits" | "communityTraits" | "desperateMeasures" | "wanderer";
 
 interface DeckTabsProps {
   activeTab: DeckTab;
@@ -13,6 +13,7 @@ interface DeckTabsProps {
     individualTraits: ReactNode;
     communityTraits: ReactNode;
     desperateMeasures: ReactNode;
+    wanderer: ReactNode;
   };
 }
 
@@ -24,6 +25,7 @@ export default function DeckTabs({ activeTab, onTabChange, children }: DeckTabsP
     { id: "individualTraits" as DeckTab, label: "Individual Traits" },
     { id: "communityTraits" as DeckTab, label: "Community Traits" },
     { id: "desperateMeasures" as DeckTab, label: "Desperate Measures" },
+    { id: "wanderer" as DeckTab, label: "Wanderer" },
   ];
 
   return (
@@ -61,6 +63,9 @@ export default function DeckTabs({ activeTab, onTabChange, children }: DeckTabsP
         </div>
         <div className={activeTab === "desperateMeasures" ? "block" : "hidden"}>
           {children.desperateMeasures}
+        </div>
+        <div className={activeTab === "wanderer" ? "block" : "hidden"}>
+          {children.wanderer}
         </div>
       </div>
     </div>

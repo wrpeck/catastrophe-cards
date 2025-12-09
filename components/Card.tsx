@@ -131,6 +131,43 @@ export default function Card({
             <div className={card.isTraitEffect ? "pb-10" : "pb-6"}></div>
           )}
         </>
+      ) : card.effect1 && card.effect2 ? (
+        <>
+          {/* Wanderer: Effect1 and Effect2 stacked vertically with "OR" between */}
+          <div className="px-4 pt-4">
+            <div className="flex flex-col items-center gap-3">
+              {/* Effect1 on top */}
+              <div className="w-full">
+                <p className="text-sm font-bold text-gray-900 leading-relaxed text-center">
+                  {card.effect1}
+                </p>
+              </div>
+              {/* Large centered "OR" */}
+              <div className="flex-shrink-0">
+                <p className="text-2xl font-bold text-gray-700 uppercase">OR</p>
+              </div>
+              {/* Effect2 on bottom */}
+              <div className="w-full">
+                <p className="text-sm font-bold text-gray-900 leading-relaxed text-center">
+                  {card.effect2}
+                </p>
+              </div>
+            </div>
+          </div>
+          {/* Flavor below */}
+          {card.flavor && (
+            <div
+              className={`px-4 pt-3 ${card.isTraitEffect ? "pb-10" : "pb-6"}`}
+            >
+              <p className="text-xs italic text-gray-600 leading-relaxed">
+                {card.flavor}
+              </p>
+            </div>
+          )}
+          {!card.flavor && (
+            <div className={card.isTraitEffect ? "pb-10" : "pb-6"}></div>
+          )}
+        </>
       ) : (
         <>
           {/* Effect */}

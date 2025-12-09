@@ -41,7 +41,8 @@ type DeckTab =
   | "communityEvent"
   | "individualTraits"
   | "communityTraits"
-  | "desperateMeasures";
+  | "desperateMeasures"
+  | "wanderer";
 
 export default function Home() {
   // Core game state
@@ -53,6 +54,7 @@ export default function Home() {
     extinctionCounterMax: 20,
     civilizationCounterMax: 20,
     communityCostPerMember: 1,
+    soloRounds: 4,
     players: [],
   });
   const [playerResources, setPlayerResources] = useState<PlayerResource[]>([]);
@@ -73,6 +75,9 @@ export default function Home() {
   const [extraEventCardPlayers, setExtraEventCardPlayers] = useState<
     Set<string>
   >(new Set());
+  const [wandererPlayers, setWandererPlayers] = useState<Set<string>>(
+    new Set()
+  );
   const [badgeRound, setBadgeRound] = useState<number | null>(null); // Round when badges were set
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [turnOrder, setTurnOrder] = useState<(string | "creation")[]>([]);
@@ -92,6 +97,7 @@ export default function Home() {
   const [deck3Cards, setDeck3Cards] = useState<CardType[]>([]);
   const [deck4Cards, setDeck4Cards] = useState<CardType[]>([]);
   const [deck5Cards, setDeck5Cards] = useState<CardType[]>([]);
+  const [deck6Cards, setDeck6Cards] = useState<CardType[]>([]);
 
   // Deck states
   const [deck1State, setDeck1State] = useState<DeckState>({
@@ -133,6 +139,15 @@ export default function Home() {
     discardedCards: [],
     drawnCard: null,
   });
+  const [deck6State, setDeck6State] = useState<DeckState>({
+    availableCards: [],
+    revealedCards: [],
+    discardedCards: [],
+    drawnCard: null,
+  });
+  const [deck6LastDrawPlayerName, setDeck6LastDrawPlayerName] = useState<
+    string | null
+  >(null);
 
   const [isLoadingGame, setIsLoadingGame] = useState(false);
   const [showLoadPrompt, setShowLoadPrompt] = useState(false);
@@ -150,6 +165,7 @@ export default function Home() {
             extinctionCounterMax: loadedSettings.extinctionCounterMax ?? 20,
             civilizationCounterMax: loadedSettings.civilizationCounterMax ?? 20,
             communityCostPerMember: loadedSettings.communityCostPerMember ?? 1,
+            soloRounds: loadedSettings.soloRounds ?? 4,
             players: loadedSettings.players ?? [],
           };
           setSettings(settingsWithDefaults);
@@ -174,6 +190,7 @@ export default function Home() {
           extinctionCounterMax: data.extinctionCounterMax ?? 20,
           civilizationCounterMax: data.civilizationCounterMax ?? 20,
           communityCostPerMember: data.communityCostPerMember ?? 1,
+          soloRounds: data.soloRounds ?? 4,
           players: data.players ?? [],
         };
         setSettings(settingsWithDefaults);
@@ -303,6 +320,27 @@ export default function Home() {
     loadDeck5();
   }, []);
 
+  useEffect(() => {
+    async function loadDeck6() {
+      try {
+        const response = await fetch("/data/deck6-wanderer.json");
+        const data: CardType[] = await response.json();
+        setDeck6Cards(data);
+        if (deck6State.availableCards.length === 0) {
+          setDeck6State({
+            availableCards: initializeCardPool(data),
+            revealedCards: [],
+            discardedCards: [],
+            drawnCard: null,
+          });
+        }
+      } catch (error) {
+        console.error("Error loading deck6:", error);
+      }
+    }
+    loadDeck6();
+  }, []);
+
   // Deck handlers - Deck 1 (Individual Event)
   const handleDeck1CardsLoaded = useCallback((cards: CardType[]) => {
     setDeck1Cards(cards);
@@ -411,6 +449,61 @@ export default function Home() {
       drawnCard: null,
     });
   }, [deck2Cards]);
+
+  // Deck handlers - Deck 6 (Wanderer)
+  const handleDeck6CardsLoaded = useCallback((cards: CardType[]) => {
+    setDeck6Cards(cards);
+    if (deck6State.availableCards.length === 0) {
+      setDeck6State({
+        availableCards: initializeCardPool(cards),
+        revealedCards: [],
+        discardedCards: [],
+        drawnCard: null,
+      });
+    }
+  }, []);
+
+  const handleDeck6Draw = useCallback(() => {
+    // Get current turn's player name before drawing (only for individual players, not communities)
+    let playerName: string | null = null;
+    if (turnOrder.length > 0 && turnOrder[currentTurnIndex] !== "creation") {
+      const currentTurn = turnOrder[currentTurnIndex];
+      // Only track individual players, not communities
+      const isCommunity = communities.some((c) => c.id === currentTurn);
+      if (!isCommunity) {
+        playerName = currentTurn; // It's a player name
+      }
+    }
+
+    setDeck6State((prev) => {
+      if (prev.availableCards.length === 0) return prev;
+      const randomIndex = Math.floor(
+        Math.random() * prev.availableCards.length
+      );
+      const selectedCard = prev.availableCards[randomIndex];
+      const newAvailableCards = [...prev.availableCards];
+      newAvailableCards.splice(randomIndex, 1);
+      return {
+        ...prev,
+        availableCards: newAvailableCards,
+        drawnCard: selectedCard,
+      };
+    });
+
+    // Update last draw player name (only if it's an individual player)
+    if (playerName) {
+      setDeck6LastDrawPlayerName(playerName);
+    }
+  }, [turnOrder, currentTurnIndex, communities]);
+
+  const handleDeck6Shuffle = useCallback(() => {
+    setDeck6State({
+      availableCards: initializeCardPool(deck6Cards),
+      revealedCards: [],
+      discardedCards: [],
+      drawnCard: null,
+    });
+  }, [deck6Cards]);
 
   // Pin/Unpin handlers (must be defined before deck handlers that use them)
   const [nextPinnedId, setNextPinnedId] = useState(1);
@@ -1110,7 +1203,7 @@ export default function Home() {
     roundValue,
   ]);
 
-  // Clear badges after two round increments
+  // Clear badges after two round increments (Wanderer badges are not cleared)
   useEffect(() => {
     if (badgeRound !== null && roundValue >= badgeRound + 2) {
       setMissingTurnPlayers(new Set());
@@ -1379,6 +1472,42 @@ export default function Home() {
     );
   };
 
+  // Check if a player should be a Wanderer (all other players are in communities)
+  const shouldBeWanderer = useCallback(
+    (playerName: string): boolean => {
+      // Get all players in communities
+      const playersInCommunities = new Set<string>();
+      communities.forEach((community) => {
+        community.memberPlayerNames.forEach((name) => {
+          playersInCommunities.add(name);
+        });
+      });
+
+      // Check if all other players (excluding this player) are in communities
+      const otherPlayers = playerResources.filter((p) => p.name !== playerName);
+      if (otherPlayers.length === 0) return false; // No other players
+
+      return (
+        otherPlayers.every((p) => playersInCommunities.has(p.name)) &&
+        !playersInCommunities.has(playerName) // This player is not in a community
+      );
+    },
+    [communities, playerResources]
+  );
+
+  // Auto-update Wanderer badges based on community membership
+  useEffect(() => {
+    setWandererPlayers((prev) => {
+      const newWanderers = new Set<string>();
+      playerResources.forEach((player) => {
+        if (shouldBeWanderer(player.name)) {
+          newWanderers.add(player.name);
+        }
+      });
+      return newWanderers;
+    });
+  }, [communities, playerResources, shouldBeWanderer]);
+
   // Compute turn order: individual players (not in communities) → Creation → Communities
   const computeTurnOrder = useCallback((): (string | "creation")[] => {
     const order: (string | "creation")[] = [];
@@ -1557,6 +1686,7 @@ export default function Home() {
       missingTurnPlayers: Array.from(missingTurnPlayers),
       missingResourcesPlayers: Array.from(missingResourcesPlayers),
       extraEventCardPlayers: Array.from(extraEventCardPlayers),
+      wandererPlayers: Array.from(wandererPlayers),
       badgeRound,
       currentTurnIndex,
       turnOrder,
@@ -1565,6 +1695,7 @@ export default function Home() {
       individualTraitsDeck: deck3State,
       communityTraitsDeck: deck4State,
       desperateMeasuresDeck: deck5State,
+      wandererDeck: deck6State,
       activeDeckTab,
     };
   }, [
@@ -1601,6 +1732,7 @@ export default function Home() {
         extinctionCounterMax: loadedSettings.extinctionCounterMax ?? 20,
         civilizationCounterMax: loadedSettings.civilizationCounterMax ?? 20,
         communityCostPerMember: loadedSettings.communityCostPerMember ?? 1,
+        soloRounds: loadedSettings.soloRounds ?? 4,
         players: loadedSettings.players ?? [],
       };
       setSettings(settingsWithDefaults);
@@ -1638,6 +1770,7 @@ export default function Home() {
     setMissingTurnPlayers(new Set(state.missingTurnPlayers || []));
     setMissingResourcesPlayers(new Set(state.missingResourcesPlayers || []));
     setExtraEventCardPlayers(new Set(state.extraEventCardPlayers || []));
+    setWandererPlayers(new Set(state.wandererPlayers || []));
     setBadgeRound(state.badgeRound ?? null);
     setCurrentTurnIndex(state.currentTurnIndex ?? 0);
     setTurnOrder(state.turnOrder ?? []);
@@ -1646,6 +1779,14 @@ export default function Home() {
     setDeck3State(state.individualTraitsDeck);
     setDeck4State(state.communityTraitsDeck);
     setDeck5State(state.desperateMeasuresDeck);
+    setDeck6State(
+      state.wandererDeck || {
+        availableCards: [],
+        revealedCards: [],
+        discardedCards: [],
+        drawnCard: null,
+      }
+    );
     setActiveDeckTab(state.activeDeckTab);
   }, []);
 
@@ -1696,6 +1837,7 @@ export default function Home() {
     setMissingTurnPlayers(new Set());
     setMissingResourcesPlayers(new Set());
     setExtraEventCardPlayers(new Set());
+    setWandererPlayers(new Set());
     setBadgeRound(null);
     setCurrentTurnIndex(0);
     setTurnOrder([]);
@@ -1752,6 +1894,14 @@ export default function Home() {
         drawnCard: null,
       });
     }
+    if (deck6Cards.length > 0) {
+      setDeck6State({
+        availableCards: initializeCardPool(deck6Cards),
+        revealedCards: [],
+        discardedCards: [],
+        drawnCard: null,
+      });
+    }
 
     setActiveDeckTab("individualEvent");
     setIsLoadingSettings(false); // Allow UI to render after dismissing
@@ -1769,6 +1919,7 @@ export default function Home() {
     setMissingTurnPlayers(new Set());
     setMissingResourcesPlayers(new Set());
     setExtraEventCardPlayers(new Set());
+    setWandererPlayers(new Set());
     setBadgeRound(null);
     setCurrentTurnIndex(0);
     setTurnOrder([]); // Explicitly reset turn order
@@ -1891,12 +2042,15 @@ export default function Home() {
                       getPlayerCommunity={getPlayerCommunity}
                       playerResources={playerResources}
                       communityCostPerMember={settings.communityCostPerMember}
+                      roundValue={roundValue}
+                      soloRounds={settings.soloRounds}
                       missingTurnPlayers={missingTurnPlayers}
                       onToggleMissingTurn={handleToggleMissingTurn}
                       missingResourcesPlayers={missingResourcesPlayers}
                       onToggleMissingResources={handleToggleMissingResources}
                       extraEventCardPlayers={extraEventCardPlayers}
                       onToggleExtraEventCard={handleToggleExtraEventCard}
+                      wandererPlayers={wandererPlayers}
                       currentTurnIndex={currentTurnIndex}
                       turnOrder={turnOrder}
                       pinnedCards={pinnedCards}
@@ -2025,6 +2179,18 @@ export default function Home() {
                       onCardSelect={handleDeck5CardSelect}
                       onShuffle={handleDeck5Shuffle}
                       onCardsLoaded={handleDeck5CardsLoaded}
+                    />
+                  ),
+                  wanderer: (
+                    <DrawDeck
+                      title="Wanderer"
+                      dataFile="/data/deck6-wanderer.json"
+                      availableCards={deck6State.availableCards}
+                      drawnCard={deck6State.drawnCard}
+                      onDraw={handleDeck6Draw}
+                      onShuffle={handleDeck6Shuffle}
+                      onCardsLoaded={handleDeck6CardsLoaded}
+                      lastDrawPlayerName={deck6LastDrawPlayerName}
                     />
                   ),
                 }}
