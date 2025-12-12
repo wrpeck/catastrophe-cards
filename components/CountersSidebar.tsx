@@ -33,6 +33,10 @@ interface CountersSidebarProps {
   onTurnDecrement: () => void;
   onTurnReset: () => void;
   communities: Community[];
+  currentTurnActionIndex: number;
+  turnActions: string[];
+  onTurnActionIncrement: () => void;
+  onTurnActionDecrement: () => void;
 }
 
 export default function CountersSidebar({
@@ -64,6 +68,10 @@ export default function CountersSidebar({
   onTurnDecrement,
   onTurnReset,
   communities,
+  currentTurnActionIndex,
+  turnActions,
+  onTurnActionIncrement,
+  onTurnActionDecrement,
 }: CountersSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -120,7 +128,9 @@ export default function CountersSidebar({
       >
         <div className="h-full overflow-y-auto">
           <div className="flex items-center justify-between p-4 pb-0">
-            <h2 className="text-xl font-bold text-gray-900">Counters & Settings</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              Counters & Settings
+            </h2>
             <button
               onClick={() => setIsOpen(false)}
               className="p-2 rounded-lg hover:bg-gray-100 active:scale-95 transition-all touch-manipulation"
@@ -172,6 +182,10 @@ export default function CountersSidebar({
             onTurnDecrement={onTurnDecrement}
             onTurnReset={onTurnReset}
             communities={communities}
+            currentTurnActionIndex={currentTurnActionIndex}
+            turnActions={turnActions}
+            onTurnActionIncrement={onTurnActionIncrement}
+            onTurnActionDecrement={onTurnActionDecrement}
           />
         </div>
       </div>

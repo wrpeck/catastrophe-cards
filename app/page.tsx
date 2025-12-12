@@ -83,6 +83,7 @@ export default function Home() {
   const [badgeRound, setBadgeRound] = useState<number | null>(null); // Round when badges were set
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [turnOrder, setTurnOrder] = useState<(string | "creation")[]>([]);
+  const [currentTurnActionIndex, setCurrentTurnActionIndex] = useState(0);
   const [roundCounterAnimate, setRoundCounterAnimate] = useState(false); // Animation trigger for round counter
   const [extinctionCounterAnimate, setExtinctionCounterAnimate] =
     useState(false); // Animation trigger for extinction counter
@@ -1728,6 +1729,73 @@ export default function Home() {
     [settings.turnAssist]
   );
 
+  // Helper function to get current turn's community (if it's a community turn)
+  const getCurrentTurnCommunity = useCallback((): Community | null => {
+    if (turnOrder.length === 0) {
+      return null;
+    }
+    const currentTurn = turnOrder[currentTurnIndex];
+    if (currentTurn === "creation") {
+      return null;
+    }
+    return communities.find((c) => c.id === currentTurn) || null;
+  }, [turnOrder, currentTurnIndex, communities]);
+
+  // Helper function to get current turn's player name (if it's a player turn)
+  const getCurrentTurnPlayerName = useCallback((): string | null => {
+    if (turnOrder.length === 0) {
+      return null;
+    }
+    const currentTurn = turnOrder[currentTurnIndex];
+    if (currentTurn === "creation") {
+      return null;
+    }
+    const isCommunity = communities.some((c) => c.id === currentTurn);
+    if (isCommunity) {
+      return null;
+    }
+    return currentTurn;
+  }, [turnOrder, currentTurnIndex, communities]);
+
+  // Helper function to get turn actions for current turn
+  const getTurnActionsForCurrentTurn = useCallback((): string[] => {
+    // Check if current turn is "creation" phase
+    if (turnOrder.length > 0 && turnOrder[currentTurnIndex] === "creation") {
+      return ["Create Community"];
+    }
+
+    const isPlayer = isCurrentTurnPlayer();
+    const playerName = getCurrentTurnPlayerName();
+
+    if (isPlayer && playerName) {
+      // Individual Player actions
+      const actions = [
+        "Roll for Resources",
+        "Spend Resources",
+        "Draw an Event Card",
+      ];
+      // Add Wanderer card action if player has Wanderer badge
+      if (wandererPlayers.has(playerName)) {
+        actions.push("Draw a Wanderer card");
+      }
+      return actions;
+    } else {
+      // Community actions
+      return [
+        "Pay Upkeep",
+        "Roll for Resources",
+        "Spend Resources",
+        "Draw an Event Card",
+      ];
+    }
+  }, [
+    turnOrder,
+    currentTurnIndex,
+    isCurrentTurnPlayer,
+    getCurrentTurnPlayerName,
+    wandererPlayers,
+  ]);
+
   // Turn tracker handlers
   const handleTurnIncrement = () => {
     if (turnOrder.length === 0) return;
@@ -1758,6 +1826,34 @@ export default function Home() {
     }
   };
 
+  // Turn action handlers
+  const handleTurnActionIncrement = useCallback(() => {
+    const turnActions = getTurnActionsForCurrentTurn();
+    if (currentTurnActionIndex < turnActions.length - 1) {
+      // Move to next action
+      setCurrentTurnActionIndex((prev) => prev + 1);
+    } else {
+      // On last action, advance turn and reset to first action
+      handleTurnIncrement();
+      setCurrentTurnActionIndex(0);
+    }
+  }, [currentTurnActionIndex, getTurnActionsForCurrentTurn]);
+
+  const handleTurnActionDecrement = useCallback(() => {
+    if (currentTurnActionIndex > 0) {
+      setCurrentTurnActionIndex((prev) => prev - 1);
+    }
+  }, [currentTurnActionIndex]);
+
+  const handleTurnActionReset = useCallback(() => {
+    setCurrentTurnActionIndex(0);
+  }, []);
+
+  // Reset turn action index when turn changes
+  useEffect(() => {
+    setCurrentTurnActionIndex(0);
+  }, [currentTurnIndex]);
+
   const handleTurnDecrement = () => {
     if (turnOrder.length === 0) return;
 
@@ -1770,6 +1866,7 @@ export default function Home() {
 
   const handleTurnReset = () => {
     setCurrentTurnIndex(0);
+    setCurrentTurnActionIndex(0);
   };
 
   const handleAssignCommunityTrait = (
@@ -1976,6 +2073,7 @@ export default function Home() {
       badgeRound,
       currentTurnIndex,
       turnOrder,
+      currentTurnActionIndex,
       individualEventDeck: deck1State,
       communityEventDeck: deck2State,
       individualTraitsDeck: deck3State,
@@ -2003,6 +2101,7 @@ export default function Home() {
     badgeRound,
     currentTurnIndex,
     turnOrder,
+    currentTurnActionIndex,
     deck1State,
     deck2State,
     deck3State,
@@ -2063,6 +2162,7 @@ export default function Home() {
     setBadgeRound(state.badgeRound ?? null);
     setCurrentTurnIndex(state.currentTurnIndex ?? 0);
     setTurnOrder(state.turnOrder ?? []);
+    setCurrentTurnActionIndex(state.currentTurnActionIndex ?? 0);
     setDeck1State(state.individualEventDeck);
     setDeck2State(state.communityEventDeck);
     setDeck3State(state.individualTraitsDeck);
@@ -2131,6 +2231,7 @@ export default function Home() {
     setBadgeRound(null);
     setCurrentTurnIndex(0);
     setTurnOrder([]);
+    setCurrentTurnActionIndex(0);
     setCommunities([]);
     setNextCommunityId(1);
     setNextPinnedId(1);
@@ -2210,6 +2311,7 @@ export default function Home() {
     setMissingTurnPlayers(new Set());
     setMissingResourcesPlayers(new Set());
     setExtraEventCardPlayers(new Set());
+    setCurrentTurnActionIndex(0);
     setWandererPlayers(new Set());
     setBadgeRound(null);
     setCurrentTurnIndex(0);
@@ -2388,6 +2490,10 @@ export default function Home() {
                       onTurnDecrement={handleTurnDecrement}
                       onTurnReset={handleTurnReset}
                       communities={communities}
+                      currentTurnActionIndex={currentTurnActionIndex}
+                      turnActions={getTurnActionsForCurrentTurn()}
+                      onTurnActionIncrement={handleTurnActionIncrement}
+                      onTurnActionDecrement={handleTurnActionDecrement}
                     />
                   </div>
                 ) : null
@@ -2567,6 +2673,10 @@ export default function Home() {
           onTurnDecrement={handleTurnDecrement}
           onTurnReset={handleTurnReset}
           communities={communities}
+          currentTurnActionIndex={currentTurnActionIndex}
+          turnActions={getTurnActionsForCurrentTurn()}
+          onTurnActionIncrement={handleTurnActionIncrement}
+          onTurnActionDecrement={handleTurnActionDecrement}
         />
       )}
     </>

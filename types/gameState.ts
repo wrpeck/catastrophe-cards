@@ -68,6 +68,7 @@ export interface GameState {
   // Turn Tracker
   currentTurnIndex: number; // Index into computed turn order
   turnOrder: (string | "creation")[]; // Serialized turn order for save/load
+  currentTurnActionIndex: number; // Index of current turn action (0-based)
 
   // Deck States
   individualEventDeck: DeckState;

@@ -36,6 +36,10 @@ interface CountersContentProps {
   onTurnDecrement: () => void;
   onTurnReset: () => void;
   communities: Community[];
+  currentTurnActionIndex: number;
+  turnActions: string[];
+  onTurnActionIncrement: () => void;
+  onTurnActionDecrement: () => void;
 }
 
 export default function CountersContent({
@@ -67,6 +71,10 @@ export default function CountersContent({
   onTurnDecrement,
   onTurnReset,
   communities,
+  currentTurnActionIndex,
+  turnActions,
+  onTurnActionIncrement,
+  onTurnActionDecrement,
 }: CountersContentProps) {
   const [activeTab, setActiveTab] = useState<"counters" | "settings">(
     "counters"
@@ -176,6 +184,11 @@ export default function CountersContent({
             onTurnDecrement={onTurnDecrement}
             onTurnReset={onTurnReset}
             communities={communities}
+            turnAssist={settings.turnAssist ?? true}
+            currentTurnActionIndex={currentTurnActionIndex}
+            turnActions={turnActions}
+            onTurnActionIncrement={onTurnActionIncrement}
+            onTurnActionDecrement={onTurnActionDecrement}
           />
           <GameCounter
             name="Extinction"

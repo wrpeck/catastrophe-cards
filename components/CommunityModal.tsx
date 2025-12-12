@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 interface Community {
   id: string;
@@ -17,7 +17,12 @@ interface PlayerResource {
 interface CommunityModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, memberPlayerNames: string[], optOutPlayers: string[], waivedCostPlayers: string[]) => void;
+  onSubmit: (
+    name: string,
+    memberPlayerNames: string[],
+    optOutPlayers: string[],
+    waivedCostPlayers: string[]
+  ) => void;
   availablePlayers: string[];
   existingCommunities: Community[];
   editingCommunity?: Community | null;
@@ -38,7 +43,9 @@ export default function CommunityModal({
   const [name, setName] = useState("");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [optOutPlayers, setOptOutPlayers] = useState<Set<string>>(new Set());
-  const [waivedCostPlayers, setWaivedCostPlayers] = useState<Set<string>>(new Set());
+  const [waivedCostPlayers, setWaivedCostPlayers] = useState<Set<string>>(
+    new Set()
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -124,15 +131,16 @@ export default function CommunityModal({
     return getPlayerResource(playerName) >= communityCostPerMember;
   };
 
-  const handleSubmit = () => {
+  const validateForm = (): { isValid: boolean; error: string | null } => {
     if (name.trim() === "") {
-      setError("Community name is required");
-      return;
+      return { isValid: false, error: "Community name is required" };
     }
 
     if (selectedPlayers.length < 2) {
-      setError("A community must have at least 2 members");
-      return;
+      return {
+        isValid: false,
+        error: "A community must have at least 2 members",
+      };
     }
 
     // Check if any selected player is already in another community
@@ -152,17 +160,26 @@ export default function CommunityModal({
     });
 
     if (playersInOtherCommunities.length > 0) {
-      setError(
-        `The following players are already in another community: ${playersInOtherCommunities.join(
+      return {
+        isValid: false,
+        error: `The following players are already in another community: ${playersInOtherCommunities.join(
           ", "
-        )}`
-      );
-      return;
+        )}`,
+      };
     }
 
     // Check if all selected players have sufficient resources OR have their cost waived
+    // When editing, existing members don't need to pay resources again
+    const existingMemberNames = editingCommunity
+      ? editingCommunity.memberPlayerNames
+      : [];
+
     const playersWithInsufficientResources = selectedPlayers.filter(
       (playerName) => {
+        // Existing members don't need to pay when editing
+        if (editingCommunity && existingMemberNames.includes(playerName)) {
+          return false;
+        }
         const resource = getPlayerResource(playerName);
         const isWaived = waivedCostPlayers.has(playerName);
         return resource < communityCostPerMember && !isWaived;
@@ -170,15 +187,43 @@ export default function CommunityModal({
     );
 
     if (playersWithInsufficientResources.length > 0) {
-      setError(
-        `The following players have insufficient resources (need ${communityCostPerMember}): ${playersWithInsufficientResources.join(
+      return {
+        isValid: false,
+        error: `The following players have insufficient resources (need ${communityCostPerMember}): ${playersWithInsufficientResources.join(
           ", "
-        )}. Please waive their cost to allow them to join.`
-      );
+        )}. Please waive their cost to allow them to join.`,
+      };
+    }
+
+    return { isValid: true, error: null };
+  };
+
+  // Memoize validation result to avoid recalculating on every render
+  const validation = useMemo(
+    () => validateForm(),
+    [
+      name,
+      selectedPlayers,
+      editingCommunity,
+      existingCommunities,
+      waivedCostPlayers,
+      playerResources,
+      communityCostPerMember,
+    ]
+  );
+
+  const handleSubmit = () => {
+    if (!validation.isValid) {
+      setError(validation.error);
       return;
     }
 
-    onSubmit(name.trim(), selectedPlayers, Array.from(optOutPlayers), Array.from(waivedCostPlayers));
+    onSubmit(
+      name.trim(),
+      selectedPlayers,
+      Array.from(optOutPlayers),
+      Array.from(waivedCostPlayers)
+    );
     onClose();
   };
 
@@ -239,7 +284,13 @@ export default function CommunityModal({
                   const playerCommunity = getPlayerCommunity(playerName);
                   const isSelected = selectedPlayers.includes(playerName);
                   const playerResource = getPlayerResource(playerName);
-                  const hasInsufficientResources = playerResource < communityCostPerMember;
+                  // Existing members don't need to pay when editing
+                  const isExistingMember = editingCommunity
+                    ? editingCommunity.memberPlayerNames.includes(playerName)
+                    : false;
+                  const hasInsufficientResources =
+                    !isExistingMember &&
+                    playerResource < communityCostPerMember;
                   const isCostWaived = waivedCostPlayers.has(playerName);
                   const isDisabled =
                     !!playerCommunity &&
@@ -269,26 +320,31 @@ export default function CommunityModal({
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <span className="text-sm text-gray-900 flex-1">
-                          {playerName} ({playerResource} resources)
+                          {playerName}
+                          {!isExistingMember &&
+                            ` (${playerResource} resources)`}
                         </span>
                         {playerCommunity && (
                           <span className="text-xs text-gray-500">
                             (in {playerCommunity.name})
                           </span>
                         )}
-                        {hasInsufficientResources && !isCostWaived && !playerCommunity && (
-                          <span className="text-xs text-red-500">
-                            (insufficient - waive cost to join)
-                          </span>
-                        )}
-                        {isCostWaived && (
+                        {hasInsufficientResources &&
+                          !isCostWaived &&
+                          !playerCommunity &&
+                          !isExistingMember && (
+                            <span className="text-xs text-red-500">
+                              (insufficient - waive cost to join)
+                            </span>
+                          )}
+                        {isCostWaived && !isExistingMember && (
                           <span className="text-xs text-green-600">
                             (cost waived)
                           </span>
                         )}
                       </label>
                       {/* Options for selected players */}
-                      {isSelected && !isDisabled && (
+                      {isSelected && !isDisabled && !isExistingMember && (
                         <div className="ml-8 mb-1 space-y-1">
                           <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
                             <input
@@ -320,10 +376,36 @@ export default function CommunityModal({
               {selectedPlayers.length !== 1 ? "s" : ""}
               {selectedPlayers.length > 0 && (
                 <span className="ml-2">
-                  • Total cost: {(selectedPlayers.length - waivedCostPlayers.size) * communityCostPerMember}
+                  • Total cost:{" "}
+                  {(() => {
+                    // When editing, existing members don't pay
+                    const existingMemberNames = editingCommunity
+                      ? editingCommunity.memberPlayerNames
+                      : [];
+                    const newMembers = editingCommunity
+                      ? selectedPlayers.filter(
+                          (p) => !existingMemberNames.includes(p)
+                        )
+                      : selectedPlayers;
+                    const newMembersPaying = newMembers.filter(
+                      (p) => !waivedCostPlayers.has(p)
+                    );
+                    return newMembersPaying.length * communityCostPerMember;
+                  })()}
                   {waivedCostPlayers.size > 0 && (
-                    <span className="text-green-600"> ({waivedCostPlayers.size} waived)</span>
+                    <span className="text-green-600">
+                      {" "}
+                      ({waivedCostPlayers.size} waived)
+                    </span>
                   )}
+                  {editingCommunity &&
+                    editingCommunity.memberPlayerNames.length > 0 && (
+                      <span className="text-gray-400">
+                        {" "}
+                        ({editingCommunity.memberPlayerNames.length} existing
+                        members free)
+                      </span>
+                    )}
                 </span>
               )}
             </p>
@@ -346,7 +428,12 @@ export default function CommunityModal({
             </button>
             <button
               onClick={handleSubmit}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+              disabled={!validation.isValid}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                validation.isValid
+                  ? "text-white bg-blue-600 hover:bg-blue-700"
+                  : "text-gray-400 bg-gray-200 cursor-not-allowed"
+              }`}
             >
               {editingCommunity ? "Save Changes" : "Create Community"}
             </button>
