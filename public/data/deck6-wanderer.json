@@ -2,7 +2,7 @@
   {
     "id": "wand-1",
     "displayName": "Kind Strangers",
-    "effect1": "Gain 5 resources",
+    "effect1": "Gain 2 resources",
     "effect2": "Pay 5 resources to gift a Community an available Trait",
     "flavor": "Travelers can be resourceful, and you don't ask for much.",
     "quantity": 3
@@ -10,7 +10,7 @@
   {
     "id": "wand-2",
     "displayName": "Keeper of Knowledge",
-    "effect1": "Gain 3 resources",
+    "effect1": "Gain 2 resources",
     "effect2": "Pay 3 resources to gift an Individual Trait",
     "flavor": "You didn't really consider yourself wise, but the world forgot a lot of things.",
     "quantity": 3
@@ -18,15 +18,15 @@
   {
     "id": "wand-3",
     "displayName": "Undeserved Help",
-    "effect1": "Gain 3 resources",
-    "effect2": "Pay 3 resources to waive Community Upkeep cost for 1 round",
+    "effect1": "Gain 1 resource",
+    "effect2": "Pay 2 resources to waive Community Upkeep cost for 1 round",
     "flavor": "How did you end up with more than you need? No matter, you're sharing.",
     "quantity": 3
   },
   {
     "id": "wand-4",
     "displayName": "De-Escalation",
-    "effect1": "Gain 6 resources",
+    "effect1": "Gain 3 resources",
     "effect2": "Pay 6 resources to remove one Extinction Point",
     "flavor": "Having a mediator from outside the community can be surprisingly effective.",
     "quantity": 2
@@ -34,7 +34,7 @@
   {
     "id": "wand-5",
     "displayName": "Messages from Afar",
-    "effect1": "Gain 6 resources",
+    "effect1": "Gain 3 resources",
     "effect2": "Pay 6 resources to gain one Civilization Point",
     "flavor": "You go where the radio waves can't reach, and you bring messages of hope.",
     "quantity": 2
@@ -50,7 +50,7 @@
   {
     "id": "wand-7",
     "displayName": "Advance Notice",
-    "effect1": "Gain 5 resources",
+    "effect1": "Gain 2 resources",
     "effect2": "Pay 5 resources to gift a community the Walls trait.",
     "flavor": "It's worth the risk to see the children stay safe.",
     "quantity": 3
@@ -58,7 +58,7 @@
   {
     "id": "wand-8",
     "displayName": "Gift of Sacrifice",
-    "effect1": "Gain 10 resources",
+    "effect1": "Gain 6 resources",
     "effect2": "Pay all your resources (min 10) to gain two Civilization Points and remove two Extinction Points",
     "flavor": "You may be lonely, but you're not alone.",
     "quantity": 2

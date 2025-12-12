@@ -159,13 +159,19 @@ export default function PlayerTracker({
                     return cardPlayerAssignments.get(cardKey) === player.name;
                   });
 
+                const isInCommunity = playerCommunity !== null;
+
                 return (
                   <div
                     key={index}
-                    className={`flex flex-col gap-2 p-3 bg-gray-50 rounded-lg border-2 transition-colors ${
+                    className={`flex flex-col gap-2 p-3 rounded-lg transition-colors ${
                       isCurrentTurn
-                        ? "border-yellow-400 bg-yellow-50"
-                        : "border-gray-200"
+                        ? "border-4 border-yellow-400 bg-yellow-50"
+                        : `border-2 ${
+                            isInCommunity
+                              ? "bg-gray-50 border-gray-200"
+                              : "bg-white border-gray-500 shadow-sm"
+                          }`
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">

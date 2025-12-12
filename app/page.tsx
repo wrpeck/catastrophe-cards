@@ -12,6 +12,7 @@ import DiceRoller from "@/components/DiceRoller";
 import PlayerTracker from "@/components/PlayerTracker";
 import DeckTabs from "@/components/DeckTabs";
 import SaveLoadControls from "@/components/SaveLoadControls";
+import GameOutcomeBanner from "@/components/GameOutcomeBanner";
 import { Card as CardType } from "@/types/card";
 import {
   GameState,
@@ -87,9 +88,12 @@ export default function Home() {
   const [civilizationCounterAnimate, setCivilizationCounterAnimate] =
     useState(false); // Animation trigger for civilization counter
   const roundIncrementRef = useRef(false); // Track if round increment triggered extinction increment
+  const previousTurnOrderRef = useRef<(string | "creation")[]>([]); // Track previous turn order for comparison
+  const shouldCheckWinLoseRef = useRef(false); // Track if we should check win/lose conditions after round ends
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [activeDeckTab, setActiveDeckTab] =
     useState<DeckTab>("individualEvent");
+  const [gameOutcome, setGameOutcome] = useState<"win" | "lose" | null>(null);
 
   // Deck base card data (loaded from JSON)
   const [deck1Cards, setDeck1Cards] = useState<CardType[]>([]);
@@ -1167,6 +1171,8 @@ export default function Home() {
     setRoundValue((prev) => prev + 1);
     // Always increment extinction counter when round increments
     handleExtinctionIncrement();
+    // Mark that we should check win/lose conditions after this round ends
+    shouldCheckWinLoseRef.current = true;
     // Trigger animations for both counters after React processes value updates
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -1181,6 +1187,46 @@ export default function Home() {
       });
     });
   };
+
+  // Check win/lose conditions only at the end of a round (after round increment completes)
+  // This effect runs when extinctionValue changes after a round increment
+  useEffect(() => {
+    // Only check if we just completed a round increment
+    if (shouldCheckWinLoseRef.current) {
+      shouldCheckWinLoseRef.current = false; // Reset flag
+
+      const c = civilizationValue;
+      const e = extinctionValue;
+      const cMax = settings.civilizationCounterMax;
+      const eMax = settings.extinctionCounterMax;
+
+      // Win condition: C = C Max && C >= E
+      if (c === cMax && c >= e) {
+        setGameOutcome("win");
+        return;
+      }
+
+      // Lose condition: E = E Max && E > C
+      if (e === eMax && e > c) {
+        setGameOutcome("lose");
+        return;
+      }
+
+      // Game continues - reset outcome if conditions no longer met
+      if (
+        gameOutcome !== null &&
+        (c < cMax || e < eMax || (e === eMax && e <= c))
+      ) {
+        setGameOutcome(null);
+      }
+    }
+  }, [
+    extinctionValue, // Primary dependency - check after extinction increments
+    civilizationValue,
+    settings.civilizationCounterMax,
+    settings.extinctionCounterMax,
+    gameOutcome,
+  ]);
 
   // Track badge round and clear badges after two increments
   useEffect(() => {
@@ -1401,6 +1447,14 @@ export default function Home() {
       (name) => !oldMemberNames.includes(name)
     );
 
+    // Check if the current turn is one of the players joining
+    const currentTurn =
+      turnOrder.length > 0 ? turnOrder[currentTurnIndex] : null;
+    const isCurrentPlayerJoining =
+      currentTurn !== null &&
+      currentTurn !== "creation" &&
+      newlyAddedMembers.includes(currentTurn as string);
+
     let additionalResources = 0;
 
     // Process newly added members: deduct cost (unless waived) and transfer resources
@@ -1440,6 +1494,13 @@ export default function Home() {
           : c
       )
     );
+
+    // If a player joined during their turn, we'll handle turn advancement in the useEffect
+    // that watches for turn order changes. We use a ref to track this scenario.
+    if (isCurrentPlayerJoining) {
+      // Store the community ID to advance to after state updates
+      // This will be handled by the turn order recomputation useEffect
+    }
   };
 
   const handleDisbandCommunity = (communityId: string) => {
@@ -1520,9 +1581,13 @@ export default function Home() {
       order.push(player.name);
     });
 
-    // If no individual players exist, return empty array
+    // If no individual players exist but there are communities, skip Creation and go straight to communities
     if (individualPlayers.length === 0) {
-      return [];
+      // Add community IDs directly (skip Creation phase since all players are already in communities)
+      communities.forEach((community) => {
+        order.push(community.id);
+      });
+      return order;
     }
 
     // Add Creation phase
@@ -1539,10 +1604,38 @@ export default function Home() {
   // Recompute turn order when players, communities, or settings change
   useEffect(() => {
     const newTurnOrder = computeTurnOrder();
+    const previousTurnOrder = previousTurnOrderRef.current;
+    previousTurnOrderRef.current = newTurnOrder;
     setTurnOrder(newTurnOrder);
 
-    // Adjust currentTurnIndex if it's out of bounds
+    // Adjust currentTurnIndex if it's out of bounds or if all players joined communities
     setCurrentTurnIndex((prev) => {
+      // If the previous turn order had individual players and the new one doesn't,
+      // and there are communities, advance to the first community's turn
+      if (
+        previousTurnOrder.length > 0 &&
+        newTurnOrder.length > 0 &&
+        prev < previousTurnOrder.length
+      ) {
+        const previousTurn = previousTurnOrder[prev];
+        // Check if previous turn was an individual player (not "creation" and not a community ID)
+        const wasIndividualPlayer =
+          previousTurn !== "creation" &&
+          previousTurn !== undefined &&
+          !communities.some((c) => c.id === previousTurn);
+
+        // Check if new turn order has no individual players (starts with communities)
+        const newOrderStartsWithCommunities =
+          newTurnOrder.length > 0 &&
+          newTurnOrder[0] !== "creation" &&
+          communities.some((c) => c.id === newTurnOrder[0]);
+
+        if (wasIndividualPlayer && newOrderStartsWithCommunities) {
+          // All players are now in communities, move to first community
+          return 0;
+        }
+      }
+
       if (prev >= newTurnOrder.length && newTurnOrder.length > 0) {
         return 0;
       } else if (newTurnOrder.length === 0) {
@@ -1550,7 +1643,7 @@ export default function Home() {
       }
       return prev;
     });
-  }, [computeTurnOrder]);
+  }, [computeTurnOrder, communities]);
 
   // Helper function to get current turn's display name
   const getCurrentTurnName = useCallback((): string => {
@@ -1697,6 +1790,7 @@ export default function Home() {
       desperateMeasuresDeck: deck5State,
       wandererDeck: deck6State,
       activeDeckTab,
+      gameOutcome,
     };
   }, [
     settings,
@@ -1722,6 +1816,7 @@ export default function Home() {
     deck4State,
     deck5State,
     activeDeckTab,
+    gameOutcome,
   ]);
 
   const restoreGameState = useCallback((state: GameState) => {
@@ -1788,6 +1883,7 @@ export default function Home() {
       }
     );
     setActiveDeckTab(state.activeDeckTab);
+    setGameOutcome(state.gameOutcome ?? null);
   }, []);
 
   // Auto-save with debounce
@@ -1847,6 +1943,7 @@ export default function Home() {
     setDeck1LastDrawPlayerName(null);
     setDeck2LastDrawPlayerName(null);
     setDeck2LastDrawRound(null);
+    setGameOutcome(null);
 
     // Reset player resources to 0
     setPlayerResources((prev) =>
@@ -1929,6 +2026,7 @@ export default function Home() {
     setDeck1LastDrawPlayerName(null);
     setDeck2LastDrawPlayerName(null);
     setDeck2LastDrawRound(null);
+    setGameOutcome(null);
 
     // Reset player resources to 0
     setPlayerResources((prev) =>
@@ -2015,8 +2113,12 @@ export default function Home() {
           </div>
         </div>
       )}
+      <GameOutcomeBanner outcome={gameOutcome} />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
-        <div className="flex-1 flex flex-col py-8 pb-64 md:pb-48">
+        <div
+          className="flex-1 flex flex-col py-8 pb-64 md:pb-48"
+          style={gameOutcome ? { paddingTop: "80px" } : {}}
+        >
           <div className="w-full">
             <div className="px-4 sm:px-6 lg:px-8 mb-8">
               <PageHeader />

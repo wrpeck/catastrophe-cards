@@ -44,7 +44,7 @@
     "displayName": "Trim the Fat",
     "cost": "-1 Community Member",
     "effect": "+8 Resources",
-    "flavor": "You can't carry dead weight. You can barely carry yourself.",
+    "flavor": "You can't carry dead weight when you can barely carry yourself.",
     "quantity": 2
   },
   {
