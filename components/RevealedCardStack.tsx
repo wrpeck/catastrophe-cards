@@ -8,12 +8,18 @@ interface RevealedCardStackProps {
   cards: CardType[];
   onDiscard: (card: CardType) => void;
   onPin: (card: CardType) => void;
+  deckTitle?: string;
+  onSelect?: (card: CardType) => void; // For trait selection (pin + auto-assign)
+  disabled?: boolean; // Disable buttons for trait cards
 }
 
 export default function RevealedCardStack({
   cards,
   onDiscard,
   onPin,
+  deckTitle,
+  onSelect,
+  disabled = false,
 }: RevealedCardStackProps) {
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
@@ -32,7 +38,11 @@ export default function RevealedCardStack({
     }
   };
 
-  const handleDiscard = (e: React.MouseEvent, card: CardType, index: number) => {
+  const handleDiscard = (
+    e: React.MouseEvent,
+    card: CardType,
+    index: number
+  ) => {
     e.stopPropagation();
     const cardInstanceId = getCardInstanceId(card, index);
     onDiscard(card);
@@ -44,9 +54,40 @@ export default function RevealedCardStack({
 
   const handlePin = (e: React.MouseEvent, card: CardType, index: number) => {
     e.stopPropagation();
+
+    // Don't allow pinning if disabled (for Community Traits during player turns, or Individual Traits during community turns)
+    if (
+      disabled &&
+      (deckTitle === "Community Traits" || deckTitle === "Individual Traits")
+    ) {
+      return;
+    }
+
     const cardInstanceId = getCardInstanceId(card, index);
-    onPin(card);
+
+    // For trait cards, use onSelect (which pins + auto-assigns) if available
+    // Otherwise, use regular onPin
+    const isTraitCard =
+      deckTitle === "Individual Traits" || deckTitle === "Community Traits";
+    if (isTraitCard && onSelect) {
+      onSelect(card);
+    } else {
+      onPin(card);
+    }
+
     // If the pinned card was expanded, collapse
+    if (expandedCardId === cardInstanceId) {
+      setExpandedCardId(null);
+    }
+  };
+
+  const handleSelect = (e: React.MouseEvent, card: CardType, index: number) => {
+    e.stopPropagation();
+    const cardInstanceId = getCardInstanceId(card, index);
+    if (onSelect) {
+      onSelect(card);
+    }
+    // If the selected card was expanded, collapse
     if (expandedCardId === cardInstanceId) {
       setExpandedCardId(null);
     }
@@ -89,24 +130,63 @@ export default function RevealedCardStack({
                     />
                   </svg>
                 </button>
-                <div onClick={(e) => e.stopPropagation()} className="flex justify-center">
-                  <Card
-                    card={card}
-                    onPin={() => {
-                      handlePin(
-                        { stopPropagation: () => {} } as React.MouseEvent,
-                        card,
-                        index
-                      );
-                    }}
-                    showPinButton={true}
-                  />
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex justify-center"
+                >
+                  <Card card={card} deckTitle={deckTitle} />
                 </div>
                 <div className="px-4 pb-4 pt-2 flex justify-center">
-                  <div className="w-64 max-w-full">
+                  <div className="w-64 max-w-full flex gap-2">
+                    {(deckTitle === "Individual Traits" ||
+                      deckTitle === "Community Traits") && (
+                      <button
+                        onClick={(e) => handleSelect(e, card, index)}
+                        disabled={disabled}
+                        className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          disabled
+                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            : "bg-green-600 text-white hover:bg-green-700 active:scale-95"
+                        }`}
+                        title={
+                          disabled
+                            ? deckTitle === "Community Traits"
+                              ? "Only available during community turns"
+                              : "Only available during player turns"
+                            : undefined
+                        }
+                      >
+                        Select
+                      </button>
+                    )}
                     <button
                       onClick={(e) => handleDiscard(e, card, index)}
-                      className="w-full px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 active:scale-95 transition-all duration-200"
+                      disabled={
+                        disabled &&
+                        (deckTitle === "Community Traits" ||
+                          deckTitle === "Individual Traits")
+                      }
+                      className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                        deckTitle === "Individual Traits" ||
+                        deckTitle === "Community Traits"
+                          ? "flex-1"
+                          : "w-full"
+                      } ${
+                        disabled &&
+                        (deckTitle === "Community Traits" ||
+                          deckTitle === "Individual Traits")
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
+                          : "bg-red-600 text-white hover:bg-red-700 active:scale-95"
+                      }`}
+                      title={
+                        disabled &&
+                        (deckTitle === "Community Traits" ||
+                          deckTitle === "Individual Traits")
+                          ? deckTitle === "Community Traits"
+                            ? "Only available during community turns"
+                            : "Only available during player turns"
+                          : undefined
+                      }
                     >
                       Discard
                     </button>
@@ -157,9 +237,28 @@ export default function RevealedCardStack({
                 <div className="flex items-center gap-2 ml-3">
                   <button
                     onClick={(e) => handlePin(e, card, index)}
-                    className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-yellow-600 transition-colors opacity-0 group-hover:opacity-100"
+                    disabled={
+                      disabled &&
+                      (deckTitle === "Community Traits" ||
+                        deckTitle === "Individual Traits")
+                    }
+                    className={`p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${
+                      disabled &&
+                      (deckTitle === "Community Traits" ||
+                        deckTitle === "Individual Traits")
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-yellow-600"
+                    }`}
                     aria-label="Pin card"
-                    title="Pin card"
+                    title={
+                      disabled &&
+                      (deckTitle === "Community Traits" ||
+                        deckTitle === "Individual Traits")
+                        ? deckTitle === "Community Traits"
+                          ? "Only available during community turns"
+                          : "Only available during player turns"
+                        : "Pin card"
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -176,9 +275,28 @@ export default function RevealedCardStack({
                   </button>
                   <button
                     onClick={(e) => handleDiscard(e, card, index)}
-                    className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                    disabled={
+                      disabled &&
+                      (deckTitle === "Community Traits" ||
+                        deckTitle === "Individual Traits")
+                    }
+                    className={`p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${
+                      disabled &&
+                      (deckTitle === "Community Traits" ||
+                        deckTitle === "Individual Traits")
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600"
+                    }`}
                     aria-label="Discard card"
-                    title="Discard card"
+                    title={
+                      disabled &&
+                      (deckTitle === "Community Traits" ||
+                        deckTitle === "Individual Traits")
+                        ? deckTitle === "Community Traits"
+                          ? "Only available during community turns"
+                          : "Only available during player turns"
+                        : "Discard card"
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

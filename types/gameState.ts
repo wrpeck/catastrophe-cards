@@ -30,6 +30,7 @@ export interface Settings {
   communityCostPerMember: number;
   soloRounds: number;
   players: { name: string }[];
+  turnAssist?: boolean; // When enabled, enforces turn-based restrictions on card draws and actions
 }
 
 export interface GameState {

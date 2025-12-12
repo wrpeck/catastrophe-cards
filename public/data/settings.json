@@ -3,6 +3,7 @@
   "civilizationCounterMax": 20,
   "communityCostPerMember": 1,
   "soloRounds": 4,
+  "turnAssist": true,
   "players": [
     {
       "name": "Wesley"

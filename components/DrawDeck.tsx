@@ -14,6 +14,7 @@ interface DrawDeckProps {
   onCardsLoaded?: (cards: CardType[]) => void;
   lastDrawPlayerName?: string | null;
   lastDrawRound?: number | null;
+  disabled?: boolean; // Disable the draw button
 }
 
 export default function DrawDeck({
@@ -26,6 +27,7 @@ export default function DrawDeck({
   onCardsLoaded,
   lastDrawPlayerName,
   lastDrawRound,
+  disabled = false,
 }: DrawDeckProps) {
   // Load cards from JSON file and notify parent
   useEffect(() => {
@@ -67,12 +69,21 @@ export default function DrawDeck({
       <div className="flex gap-3 mb-4">
         <button
           onClick={handleDraw}
-          disabled={!canDraw}
+          disabled={!canDraw || disabled}
           className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-            canDraw
+            canDraw && !disabled
               ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-md hover:shadow-lg"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
+          title={
+            disabled
+              ? title === "Community Event"
+                ? "Only available during community turns"
+                : title === "Wanderer"
+                ? "Only available during the Wanderer's turn"
+                : "Only available during player turns"
+              : undefined
+          }
         >
           Draw Card
         </button>

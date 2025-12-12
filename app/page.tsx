@@ -56,6 +56,7 @@ export default function Home() {
     civilizationCounterMax: 20,
     communityCostPerMember: 1,
     soloRounds: 4,
+    turnAssist: true,
     players: [],
   });
   const [playerResources, setPlayerResources] = useState<PlayerResource[]>([]);
@@ -513,12 +514,15 @@ export default function Home() {
   const [nextPinnedId, setNextPinnedId] = useState(1);
 
   const handlePin = useCallback(
-    (card: CardType, deckTitle: string) => {
-      setPinnedCards((prev) => [
-        ...prev,
-        { ...card, deckTitle, pinnedId: `pinned-${nextPinnedId}` },
-      ]);
+    (card: CardType, deckTitle: string): PinnedCardWithDeck => {
+      const pinnedCard: PinnedCardWithDeck = {
+        ...card,
+        deckTitle,
+        pinnedId: `pinned-${nextPinnedId}`,
+      };
+      setPinnedCards((prev) => [...prev, pinnedCard]);
       setNextPinnedId((prev) => prev + 1);
+      return pinnedCard;
     },
     [nextPinnedId]
   );
@@ -1505,6 +1509,29 @@ export default function Home() {
 
   const handleDisbandCommunity = (communityId: string) => {
     setCommunities((prev) => prev.filter((c) => c.id !== communityId));
+
+    // Find all Community Traits assigned to this community and unpin them
+    const communityTraitPinnedIds = new Set<string>();
+    communityTraitAssignments.forEach((assignedCommunityId, pinnedId) => {
+      if (assignedCommunityId === communityId) {
+        communityTraitPinnedIds.add(pinnedId);
+      }
+    });
+
+    // Unpin all Community Traits assigned to this community
+    if (communityTraitPinnedIds.size > 0) {
+      setPinnedCards((prev) =>
+        prev.filter(
+          (card) =>
+            !(
+              card.deckTitle === "Community Traits" &&
+              communityTraitPinnedIds.has(card.pinnedId)
+            )
+        )
+      );
+    }
+
+    // Remove community trait assignments
     setCommunityTraitAssignments((prev) => {
       const updated = new Map(prev);
       for (const [cardKey, assignedCommunityId] of updated.entries()) {
@@ -1667,6 +1694,40 @@ export default function Home() {
     return currentTurn;
   }, [turnOrder, currentTurnIndex, communities]);
 
+  // Helper function to check if current turn is a player (not a community)
+  const isCurrentTurnPlayer = useCallback((): boolean => {
+    if (turnOrder.length === 0) {
+      return false;
+    }
+
+    const currentTurn = turnOrder[currentTurnIndex];
+
+    // Not a player if it's creation phase
+    if (currentTurn === "creation") {
+      return false;
+    }
+
+    // Check if it's a community ID
+    const isCommunity = communities.some((c) => c.id === currentTurn);
+
+    // It's a player if it's not a community
+    return !isCommunity;
+  }, [turnOrder, currentTurnIndex, communities]);
+
+  // Helper function to wrap turn-based validation - scalable for future validations
+  // This function checks Turn Assist setting first, then applies validation logic
+  const shouldDisableForTurn = useCallback(
+    (validationFn: () => boolean): boolean => {
+      // If Turn Assist is disabled, never disable buttons
+      if (!(settings.turnAssist ?? true)) {
+        return false;
+      }
+      // Otherwise, use the validation function
+      return validationFn();
+    },
+    [settings.turnAssist]
+  );
+
   // Turn tracker handlers
   const handleTurnIncrement = () => {
     if (turnOrder.length === 0) return;
@@ -1733,6 +1794,138 @@ export default function Home() {
     const cardKey = card.pinnedId;
     return communityTraitAssignments.get(cardKey) || null;
   };
+
+  // Handler for selecting individual traits (pin + auto-assign)
+  const handleDeck3Select = useCallback(
+    (cardToPin: CardType) => {
+      // Pin the card
+      const pinnedCard = handlePin(cardToPin, "Individual Traits");
+
+      // Auto-assign to current turn player if it's a player's turn
+      if (turnOrder.length > 0 && turnOrder[currentTurnIndex] !== "creation") {
+        const currentTurn = turnOrder[currentTurnIndex];
+        const isCommunity = communities.some((c) => c.id === currentTurn);
+        if (!isCommunity) {
+          // It's a player's turn
+          handleAssignPlayerToCard(pinnedCard, currentTurn);
+        }
+      }
+
+      // Update deck state (same as handleDeck3Pin)
+      setDeck3State((prev) => {
+        const cardIndex = prev.revealedCards.findIndex(
+          (card) => card.id === cardToPin.id
+        );
+        if (cardIndex === -1) return prev;
+
+        const newRevealedCards = prev.revealedCards.filter(
+          (_, index) => index !== cardIndex
+        );
+
+        const newAvailableCards = [...prev.availableCards];
+        const availableIndex = newAvailableCards.findIndex(
+          (card) => card.id === cardToPin.id
+        );
+        if (availableIndex !== -1) {
+          newAvailableCards.splice(availableIndex, 1);
+        }
+
+        if (newAvailableCards.length > 0 && newRevealedCards.length < 3) {
+          const { selected: replacementCards, remaining } = getRandomCards(
+            1,
+            newAvailableCards
+          );
+          if (replacementCards.length > 0) {
+            newRevealedCards.push(replacementCards[0]);
+            return {
+              ...prev,
+              availableCards: remaining,
+              revealedCards: newRevealedCards,
+            };
+          }
+        }
+
+        return {
+          ...prev,
+          availableCards: newAvailableCards,
+          revealedCards: newRevealedCards,
+        };
+      });
+    },
+    [
+      handlePin,
+      turnOrder,
+      currentTurnIndex,
+      communities,
+      handleAssignPlayerToCard,
+    ]
+  );
+
+  // Handler for selecting community traits (pin + auto-assign)
+  const handleDeck4Select = useCallback(
+    (cardToPin: CardType) => {
+      // Pin the card
+      const pinnedCard = handlePin(cardToPin, "Community Traits");
+
+      // Auto-assign to current turn community if it's a community's turn
+      if (turnOrder.length > 0 && turnOrder[currentTurnIndex] !== "creation") {
+        const currentTurn = turnOrder[currentTurnIndex];
+        const community = communities.find((c) => c.id === currentTurn);
+        if (community) {
+          // It's a community's turn
+          handleAssignCommunityTrait(pinnedCard, currentTurn);
+        }
+      }
+
+      // Update deck state (same as handleDeck4Pin)
+      setDeck4State((prev) => {
+        const cardIndex = prev.revealedCards.findIndex(
+          (card) => card.id === cardToPin.id
+        );
+        if (cardIndex === -1) return prev;
+
+        const newRevealedCards = prev.revealedCards.filter(
+          (_, index) => index !== cardIndex
+        );
+
+        const newAvailableCards = [...prev.availableCards];
+        const availableIndex = newAvailableCards.findIndex(
+          (card) => card.id === cardToPin.id
+        );
+        if (availableIndex !== -1) {
+          newAvailableCards.splice(availableIndex, 1);
+        }
+
+        if (newAvailableCards.length > 0 && newRevealedCards.length < 3) {
+          const { selected: replacementCards, remaining } = getRandomCards(
+            1,
+            newAvailableCards
+          );
+          if (replacementCards.length > 0) {
+            newRevealedCards.push(replacementCards[0]);
+            return {
+              ...prev,
+              availableCards: remaining,
+              revealedCards: newRevealedCards,
+            };
+          }
+        }
+
+        return {
+          ...prev,
+          availableCards: newAvailableCards,
+          revealedCards: newRevealedCards,
+        };
+      });
+    },
+    [
+      handlePin,
+      turnOrder,
+      currentTurnIndex,
+      communities,
+      handleAssignCommunityTrait,
+    ]
+  );
 
   // Settings handler
   const handleSettingsChange = useCallback((newSettings: Settings) => {
@@ -1828,6 +2021,7 @@ export default function Home() {
         civilizationCounterMax: loadedSettings.civilizationCounterMax ?? 20,
         communityCostPerMember: loadedSettings.communityCostPerMember ?? 1,
         soloRounds: loadedSettings.soloRounds ?? 4,
+        turnAssist: loadedSettings.turnAssist ?? true,
         players: loadedSettings.players ?? [],
       };
       setSettings(settingsWithDefaults);
@@ -2214,6 +2408,9 @@ export default function Home() {
                       onShuffle={handleDeck1Shuffle}
                       onCardsLoaded={handleDeck1CardsLoaded}
                       lastDrawPlayerName={deck1LastDrawPlayerName}
+                      disabled={shouldDisableForTurn(
+                        () => !isCurrentTurnPlayer()
+                      )}
                     />
                   ),
                   communityEvent: (
@@ -2227,6 +2424,9 @@ export default function Home() {
                       onCardsLoaded={handleDeck2CardsLoaded}
                       lastDrawPlayerName={deck2LastDrawPlayerName}
                       lastDrawRound={deck2LastDrawRound}
+                      disabled={shouldDisableForTurn(() =>
+                        isCurrentTurnPlayer()
+                      )}
                     />
                   ),
                   individualTraits: (
@@ -2245,6 +2445,10 @@ export default function Home() {
                       onCardSelect={handleDeck3CardSelect}
                       onShuffle={handleDeck3Shuffle}
                       onCardsLoaded={handleDeck3CardsLoaded}
+                      onSelect={handleDeck3Select}
+                      disabled={shouldDisableForTurn(
+                        () => !isCurrentTurnPlayer()
+                      )}
                     />
                   ),
                   communityTraits: (
@@ -2263,6 +2467,10 @@ export default function Home() {
                       onCardSelect={handleDeck4CardSelect}
                       onShuffle={handleDeck4Shuffle}
                       onCardsLoaded={handleDeck4CardsLoaded}
+                      onSelect={handleDeck4Select}
+                      disabled={shouldDisableForTurn(() =>
+                        isCurrentTurnPlayer()
+                      )}
                     />
                   ),
                   desperateMeasures: (
@@ -2293,6 +2501,19 @@ export default function Home() {
                       onShuffle={handleDeck6Shuffle}
                       onCardsLoaded={handleDeck6CardsLoaded}
                       lastDrawPlayerName={deck6LastDrawPlayerName}
+                      disabled={shouldDisableForTurn(() => {
+                        return (
+                          wandererPlayers.size === 0 ||
+                          !(
+                            turnOrder.length > 0 &&
+                            turnOrder[currentTurnIndex] !== "creation" &&
+                            !communities.some(
+                              (c) => c.id === turnOrder[currentTurnIndex]
+                            ) &&
+                            wandererPlayers.has(turnOrder[currentTurnIndex])
+                          )
+                        );
+                      })}
                     />
                   ),
                 }}

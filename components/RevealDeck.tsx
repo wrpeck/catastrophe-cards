@@ -18,6 +18,8 @@ interface RevealDeckProps {
   onShuffle: () => void;
   onAddToDiscardRef?: (ref: (card: CardType) => void) => void;
   onCardsLoaded?: (cards: CardType[]) => void;
+  onSelect?: (card: CardType) => void; // For trait selection (pin + auto-assign)
+  disabled?: boolean; // Disable buttons for trait cards
 }
 
 export default function RevealDeck({
@@ -34,6 +36,8 @@ export default function RevealDeck({
   onShuffle,
   onAddToDiscardRef,
   onCardsLoaded,
+  onSelect,
+  disabled = false,
 }: RevealDeckProps) {
   // Expose addToDiscard function to parent
   useEffect(() => {
@@ -104,6 +108,9 @@ export default function RevealDeck({
             cards={revealedCards}
             onDiscard={onCardSelect}
             onPin={handlePin}
+            deckTitle={title}
+            onSelect={onSelect}
+            disabled={disabled}
           />
         </div>
       )}

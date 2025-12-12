@@ -48,6 +48,13 @@ export default function SettingsEditor({
     onSettingsChange(updated);
   };
 
+  const handleTurnAssistChange = (enabled: boolean) => {
+    const updated = { ...localSettings, turnAssist: enabled };
+    setLocalSettings(updated);
+    setHasChanges(true);
+    onSettingsChange(updated);
+  };
+
   const handlePlayerNameChange = (index: number, name: string) => {
     const updated = {
       ...localSettings,
@@ -83,7 +90,9 @@ export default function SettingsEditor({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-900 mb-3">Game Settings</h3>
+      <h3 className="text-sm font-semibold text-gray-900 mb-3">
+        Game Settings
+      </h3>
 
       {/* Counter Maximums */}
       <div className="space-y-3">
@@ -150,6 +159,39 @@ export default function SettingsEditor({
             className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+
+        <div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={localSettings.turnAssist ?? true}
+              onClick={() =>
+                handleTurnAssistChange(!(localSettings.turnAssist ?? true))
+              }
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                localSettings.turnAssist ?? true ? "bg-blue-600" : "bg-gray-200"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  localSettings.turnAssist ?? true
+                    ? "translate-x-5"
+                    : "translate-x-0"
+                }`}
+              />
+            </button>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Turn Assist
+              </label>
+              <p className="text-xs text-gray-500">
+                When enabled, enforces turn-based restrictions on card draws and
+                actions
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Players */}
@@ -189,4 +231,3 @@ export default function SettingsEditor({
     </div>
   );
 }
-

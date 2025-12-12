@@ -8,6 +8,8 @@ interface CardProps {
   isPinned?: boolean;
   showPinButton?: boolean;
   className?: string;
+  deckTitle?: string; // To determine if it's a trait and which type
+  communityMemberCount?: number; // For community traits - number of members to calculate cost
 }
 
 export default function Card({
@@ -18,6 +20,8 @@ export default function Card({
   isPinned = false,
   showPinButton = false,
   className = "",
+  deckTitle,
+  communityMemberCount,
 }: CardProps) {
   const handlePinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -27,6 +31,30 @@ export default function Card({
       onPin();
     }
   };
+
+  // Calculate trait cost
+  const getTraitCost = (): {
+    value: number | string;
+    isCommunity: boolean;
+  } | null => {
+    if (deckTitle === "Individual Traits") {
+      return { value: card.traitCost ?? 5, isCommunity: false }; // Default 5 for individual traits
+    } else if (deckTitle === "Community Traits") {
+      // Show "10+" to indicate base cost + member count
+      return {
+        value:
+          communityMemberCount !== undefined
+            ? 10 + communityMemberCount
+            : "10+",
+        isCommunity: true,
+      };
+    }
+    return null;
+  };
+
+  const traitCostInfo = getTraitCost();
+  const isIndividualTrait = deckTitle === "Individual Traits";
+  const isCommunityTrait = deckTitle === "Community Traits";
 
   // Determine background color based on type
   const getBackgroundColor = () => {
@@ -47,43 +75,21 @@ export default function Card({
       } ${isPinned ? "ring-2 ring-yellow-400" : ""} ${className}`}
       onClick={onClick}
     >
-      {/* Pin Button */}
-      {showPinButton && (
-        <button
-          onClick={handlePinClick}
-          className={`absolute top-1 right-1 ${
-            card.isTraitEffect ? "top-8" : ""
-          } p-1.5 rounded-full transition-all duration-200 z-10 ${
-            isPinned
-              ? "bg-yellow-400 text-yellow-900 hover:bg-yellow-500"
-              : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-          }`}
-          aria-label={isPinned ? "Unpin card" : "Pin card"}
-        >
-          {isPinned ? (
+      {/* Trait Cost Display - Upper Right Corner */}
+      {traitCostInfo !== null && (
+        <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-md bg-blue-100 text-blue-800 z-10">
+          <span className="text-sm font-bold">{traitCostInfo.value}</span>
+          {traitCostInfo.isCommunity && (
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 24 24"
+              className="h-4 w-4 shrink-0"
+              viewBox="0 0 20 20"
               fill="currentColor"
             >
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
             </svg>
           )}
-        </button>
+        </div>
       )}
 
       {/* Card Name */}
