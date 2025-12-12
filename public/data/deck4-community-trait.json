@@ -4,69 +4,79 @@
     "displayName": "Agriculture",
     "flavor": "Nobody told you it all ripens at once! You hope people like corn.",
     "effect": "Add 1d6 to your community's resource rolls.",
-    "quantity": 5
+    "quantity": 5,
+    "traitCost": 10
   },
   {
     "id": "deck4-2",
     "displayName": "Walls",
     "flavor": "It felt medieval when you started, but you owe your life to those bricks.",
     "effect": "If an event card would cause you to lose resources or disband the community, instead destroy this card.",
-    "quantity": 5
+    "quantity": 5,
+    "traitCost": 10
   },
   {
     "id": "deck4-3",
     "displayName": "Schoolhouse",
     "flavor": "Don't let them forget what we lost.",
     "effect": "You may subtract 1d6 from the cost of your first Civilization Point purchased each round.",
-    "quantity": 5
+    "quantity": 5,
+    "traitCost": 10
   },
   {
     "id": "deck4-4",
     "displayName": "Medical Center",
     "flavor": "Not sure a bag of bandages and tylenol makes you a doctor, but it's something.",
     "effect": "If you purchase 2 Civilization Points in one round, you get a third for free.",
-    "quantity": 5
+    "quantity": 5,
+    "traitCost": 10
   },
   {
     "id": "deck4-5",
     "displayName": "Sawhouse",
     "flavor": "Never thought you'd get to lumberjacking in the apocalypse.",
     "effect": "Community maintenance costs are reduced by 1d2 (minimum 1).",
-    "quantity": 5
+    "quantity": 5,
+    "traitCost": 10
   },
   {
     "id": "deck4-6",
     "displayName": "Blacksmith",
     "flavor": "This is a lot harder than it looks, and it looks hard.",
     "effect": "Community maintenance costs are reduced by 1d2 (minimum 1).",
-    "quantity": 5
+    "quantity": 5,
+    "traitCost": 10
   },
   {
     "id": "deck4-7",
     "displayName": "Militia",
     "flavor": "Strange. The Militia is somehow less violent than the alternatives.",
     "effect": "If your community disbands, resources are distributed evenly among across members (rounding up).",
-    "quantity": 5
+    "quantity": 5,
+    "traitCost": 10
   },
   {
     "id": "deck4-8",
     "displayName": "Town Hall",
     "flavor": "You start to feel human again when you're in this place.",
     "effect": "New members may join your community, and you may invite other communities to join yours. If an event card would cause you to remove a member, instead destroy this card.",
-    "quantity": 5
+    "quantity": 5,
+    "traitCost": 10
   },
   {
     "id": "deck4-9",
     "displayName": "Research Lab",
     "flavor": "You can't go backwards. The only way forward is with your eyes open.",
     "effect": "You may pay the cost of a Civilization Point to instead decrease the Extinction Counter by 1.",
-    "quantity": 5
+    "quantity": 5,
+    "traitCost": 10
   },
   {
     "id": "deck4-10",
     "displayName": "Chapel",
     "flavor": "Not everybody believes, but nobody laughs at it anymore.",
     "effect": "You may purchase or exchange individual traits for community members for 5 resources each.",
-    "quantity": 5
+    "quantity": 5,
+    "traitCost": 10
   }
 ]

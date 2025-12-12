@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Card as CardType } from "@/types/card";
+import { Community } from "@/types/gameState";
 import RevealedCardStack from "./RevealedCardStack";
 
 interface RevealDeckProps {
@@ -20,6 +21,12 @@ interface RevealDeckProps {
   onCardsLoaded?: (cards: CardType[]) => void;
   onSelect?: (card: CardType) => void; // For trait selection (pin + auto-assign)
   disabled?: boolean; // Disable buttons for trait cards
+  currentTurnIndex?: number; // Current turn index
+  turnOrder?: (string | "creation")[]; // Turn order array
+  communities?: Community[]; // Communities array
+  playerResources?: { name: string; resources: number }[]; // Player resources
+  turnAssist?: boolean; // Turn Assist setting
+  isCreationTurn?: boolean; // Whether current turn is Creation phase
 }
 
 export default function RevealDeck({
@@ -38,6 +45,12 @@ export default function RevealDeck({
   onCardsLoaded,
   onSelect,
   disabled = false,
+  currentTurnIndex,
+  turnOrder,
+  communities,
+  playerResources,
+  turnAssist,
+  isCreationTurn,
 }: RevealDeckProps) {
   // Expose addToDiscard function to parent
   useEffect(() => {
@@ -111,6 +124,12 @@ export default function RevealDeck({
             deckTitle={title}
             onSelect={onSelect}
             disabled={disabled}
+            currentTurnIndex={currentTurnIndex}
+            turnOrder={turnOrder}
+            communities={communities}
+            playerResources={playerResources}
+            turnAssist={turnAssist}
+            isCreationTurn={isCreationTurn}
           />
         </div>
       )}

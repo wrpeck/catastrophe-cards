@@ -184,8 +184,8 @@ export default function PlayerTracker({
                             {assignedTraits.map((trait, traitIndex) => (
                               <span
                                 key={`${player.name}-${trait.id}-${trait.deckTitle}-${traitIndex}`}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
-                                title={trait.displayName}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 cursor-help"
+                                title={trait.effect || trait.displayName}
                               >
                                 {trait.displayName}
                               </span>

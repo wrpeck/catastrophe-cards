@@ -559,12 +559,28 @@ export default function Home() {
             currentAvailableCards.splice(index, 1);
           }
         });
-        return {
-          ...prev,
-          availableCards: currentAvailableCards,
-          revealedCards: [],
-          discardedCards: newDiscardedCards,
-        };
+
+        // After discarding, automatically reveal 3 new cards if available
+        if (currentAvailableCards.length >= 3) {
+          const { selected, remaining } = getRandomCards(
+            3,
+            currentAvailableCards
+          );
+          return {
+            ...prev,
+            availableCards: remaining,
+            revealedCards: selected,
+            discardedCards: newDiscardedCards,
+          };
+        } else {
+          // Not enough cards to reveal 3, reveal what's available
+          return {
+            ...prev,
+            availableCards: [],
+            revealedCards: currentAvailableCards,
+            discardedCards: newDiscardedCards,
+          };
+        }
       }
 
       // Reveal 3 new cards
@@ -754,12 +770,28 @@ export default function Home() {
             currentAvailableCards.splice(index, 1);
           }
         });
-        return {
-          ...prev,
-          availableCards: currentAvailableCards,
-          revealedCards: [],
-          discardedCards: newDiscardedCards,
-        };
+
+        // After discarding, automatically reveal 3 new cards if available
+        if (currentAvailableCards.length >= 3) {
+          const { selected, remaining } = getRandomCards(
+            3,
+            currentAvailableCards
+          );
+          return {
+            ...prev,
+            availableCards: remaining,
+            revealedCards: selected,
+            discardedCards: newDiscardedCards,
+          };
+        } else {
+          // Not enough cards to reveal 3, reveal what's available
+          return {
+            ...prev,
+            availableCards: [],
+            revealedCards: currentAvailableCards,
+            discardedCards: newDiscardedCards,
+          };
+        }
       }
 
       const { selected, remaining } = getRandomCards(3, currentAvailableCards);
@@ -946,12 +978,28 @@ export default function Home() {
             currentAvailableCards.splice(index, 1);
           }
         });
-        return {
-          ...prev,
-          availableCards: currentAvailableCards,
-          revealedCards: [],
-          discardedCards: newDiscardedCards,
-        };
+
+        // After discarding, automatically reveal 3 new cards if available
+        if (currentAvailableCards.length >= 3) {
+          const { selected, remaining } = getRandomCards(
+            3,
+            currentAvailableCards
+          );
+          return {
+            ...prev,
+            availableCards: remaining,
+            revealedCards: selected,
+            discardedCards: newDiscardedCards,
+          };
+        } else {
+          // Not enough cards to reveal 3, reveal what's available
+          return {
+            ...prev,
+            availableCards: [],
+            revealedCards: currentAvailableCards,
+            discardedCards: newDiscardedCards,
+          };
+        }
       }
 
       const { selected, remaining } = getRandomCards(3, currentAvailableCards);
@@ -1715,6 +1763,15 @@ export default function Home() {
     return !isCommunity;
   }, [turnOrder, currentTurnIndex, communities]);
 
+  // Helper function to check if current turn is Creation phase
+  const isCreationTurn = useCallback((): boolean => {
+    return (
+      turnOrder.length > 0 &&
+      currentTurnIndex < turnOrder.length &&
+      turnOrder[currentTurnIndex] === "creation"
+    );
+  }, [turnOrder, currentTurnIndex]);
+
   // Helper function to wrap turn-based validation - scalable for future validations
   // This function checks Turn Assist setting first, then applies validation logic
   const shouldDisableForTurn = useCallback(
@@ -1895,15 +1952,28 @@ export default function Home() {
   // Handler for selecting individual traits (pin + auto-assign)
   const handleDeck3Select = useCallback(
     (cardToPin: CardType) => {
+      // Calculate cost
+      const cost = cardToPin.traitCost ?? 5;
+
       // Pin the card
       const pinnedCard = handlePin(cardToPin, "Individual Traits");
 
-      // Auto-assign to current turn player if it's a player's turn
+      // Auto-assign to current turn player if it's a player's turn and decrement resources
       if (turnOrder.length > 0 && turnOrder[currentTurnIndex] !== "creation") {
         const currentTurn = turnOrder[currentTurnIndex];
         const isCommunity = communities.some((c) => c.id === currentTurn);
         if (!isCommunity) {
-          // It's a player's turn
+          // It's a player's turn - decrement resources
+          setPlayerResources((prev) =>
+            prev.map((player) =>
+              player.name === currentTurn
+                ? {
+                    ...player,
+                    resources: Math.max(0, player.resources - cost),
+                  }
+                : player
+            )
+          );
           handleAssignPlayerToCard(pinnedCard, currentTurn);
         }
       }
@@ -1955,21 +2025,37 @@ export default function Home() {
       currentTurnIndex,
       communities,
       handleAssignPlayerToCard,
+      playerResources,
     ]
   );
 
   // Handler for selecting community traits (pin + auto-assign)
   const handleDeck4Select = useCallback(
     (cardToPin: CardType) => {
+      // Calculate cost (base + member count)
+      const baseCost = cardToPin.traitCost ?? 10;
+      let totalCost = baseCost;
+
       // Pin the card
       const pinnedCard = handlePin(cardToPin, "Community Traits");
 
-      // Auto-assign to current turn community if it's a community's turn
+      // Auto-assign to current turn community if it's a community's turn and decrement resources
       if (turnOrder.length > 0 && turnOrder[currentTurnIndex] !== "creation") {
         const currentTurn = turnOrder[currentTurnIndex];
         const community = communities.find((c) => c.id === currentTurn);
         if (community) {
-          // It's a community's turn
+          // It's a community's turn - calculate total cost and decrement resources
+          totalCost = baseCost + community.memberPlayerNames.length;
+          setCommunities((prev) =>
+            prev.map((c) =>
+              c.id === currentTurn
+                ? {
+                    ...c,
+                    resources: Math.max(0, c.resources - totalCost),
+                  }
+                : c
+            )
+          );
           handleAssignCommunityTrait(pinnedCard, currentTurn);
         }
       }
@@ -2530,8 +2616,8 @@ export default function Home() {
                       onCardsLoaded={handleDeck2CardsLoaded}
                       lastDrawPlayerName={deck2LastDrawPlayerName}
                       lastDrawRound={deck2LastDrawRound}
-                      disabled={shouldDisableForTurn(() =>
-                        isCurrentTurnPlayer()
+                      disabled={shouldDisableForTurn(
+                        () => isCurrentTurnPlayer() || isCreationTurn()
                       )}
                     />
                   ),
@@ -2555,6 +2641,11 @@ export default function Home() {
                       disabled={shouldDisableForTurn(
                         () => !isCurrentTurnPlayer()
                       )}
+                      currentTurnIndex={currentTurnIndex}
+                      turnOrder={turnOrder}
+                      communities={communities}
+                      playerResources={playerResources}
+                      turnAssist={settings.turnAssist ?? true}
                     />
                   ),
                   communityTraits: (
@@ -2577,6 +2668,12 @@ export default function Home() {
                       disabled={shouldDisableForTurn(() =>
                         isCurrentTurnPlayer()
                       )}
+                      currentTurnIndex={currentTurnIndex}
+                      turnOrder={turnOrder}
+                      communities={communities}
+                      playerResources={playerResources}
+                      turnAssist={settings.turnAssist ?? true}
+                      isCreationTurn={isCreationTurn()}
                     />
                   ),
                   desperateMeasures: (
@@ -2595,6 +2692,11 @@ export default function Home() {
                       onCardSelect={handleDeck5CardSelect}
                       onShuffle={handleDeck5Shuffle}
                       onCardsLoaded={handleDeck5CardsLoaded}
+                      currentTurnIndex={currentTurnIndex}
+                      turnOrder={turnOrder}
+                      communities={communities}
+                      turnAssist={settings.turnAssist ?? true}
+                      isCreationTurn={isCreationTurn()}
                     />
                   ),
                   wanderer: (

@@ -1,4 +1,5 @@
 import { Card as CardType } from "@/types/card";
+import { Community } from "@/types/gameState";
 
 interface CardProps {
   card: CardType;
@@ -9,7 +10,10 @@ interface CardProps {
   showPinButton?: boolean;
   className?: string;
   deckTitle?: string; // To determine if it's a trait and which type
-  communityMemberCount?: number; // For community traits - number of members to calculate cost
+  communityMemberCount?: number; // For community traits - number of members to calculate cost (deprecated, use turn info instead)
+  currentTurnIndex?: number; // Current turn index
+  turnOrder?: (string | "creation")[]; // Turn order array
+  communities?: Community[]; // Communities array
 }
 
 export default function Card({
@@ -22,6 +26,9 @@ export default function Card({
   className = "",
   deckTitle,
   communityMemberCount,
+  currentTurnIndex,
+  turnOrder,
+  communities,
 }: CardProps) {
   const handlePinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -34,18 +41,44 @@ export default function Card({
 
   // Calculate trait cost
   const getTraitCost = (): {
-    value: number | string;
+    baseCost: number;
+    memberCount?: number;
     isCommunity: boolean;
   } | null => {
     if (deckTitle === "Individual Traits") {
-      return { value: card.traitCost ?? 5, isCommunity: false }; // Default 5 for individual traits
-    } else if (deckTitle === "Community Traits") {
-      // Show "10+" to indicate base cost + member count
       return {
-        value:
-          communityMemberCount !== undefined
-            ? 10 + communityMemberCount
-            : "10+",
+        baseCost: card.traitCost ?? 5,
+        isCommunity: false,
+      };
+    } else if (deckTitle === "Community Traits") {
+      const baseCost = card.traitCost ?? 10;
+
+      // Check if it's a community's turn
+      const isCommunityTurn =
+        currentTurnIndex !== undefined &&
+        turnOrder &&
+        turnOrder.length > 0 &&
+        communities &&
+        currentTurnIndex < turnOrder.length &&
+        turnOrder[currentTurnIndex] !== "creation" &&
+        communities.some((c) => c.id === turnOrder[currentTurnIndex]);
+
+      if (isCommunityTurn && communities) {
+        // It's a community's turn - show base cost + member count
+        const currentTurn = turnOrder[currentTurnIndex];
+        const currentCommunity = communities.find((c) => c.id === currentTurn);
+        if (currentCommunity) {
+          return {
+            baseCost,
+            memberCount: currentCommunity.memberPlayerNames.length,
+            isCommunity: true,
+          };
+        }
+      }
+
+      // Individual turn or Creation turn - show base cost + icon (no member count)
+      return {
+        baseCost,
         isCommunity: true,
       };
     }
@@ -78,16 +111,25 @@ export default function Card({
       {/* Trait Cost Display - Upper Right Corner */}
       {traitCostInfo !== null && (
         <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-md bg-blue-100 text-blue-800 z-10">
-          <span className="text-sm font-bold">{traitCostInfo.value}</span>
+          <span className="text-sm font-bold">{traitCostInfo.baseCost}</span>
           {traitCostInfo.isCommunity && (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 shrink-0"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-            </svg>
+            <>
+              <span className="text-sm font-bold">+</span>
+              {traitCostInfo.memberCount !== undefined ? (
+                <span className="text-sm font-bold">
+                  {traitCostInfo.memberCount}
+                </span>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 shrink-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                </svg>
+              )}
+            </>
           )}
         </div>
       )}

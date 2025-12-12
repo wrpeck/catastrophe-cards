@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card as CardType } from "@/types/card";
+import { Community } from "@/types/gameState";
 import Card from "./Card";
 
 interface RevealedCardStackProps {
@@ -11,6 +12,12 @@ interface RevealedCardStackProps {
   deckTitle?: string;
   onSelect?: (card: CardType) => void; // For trait selection (pin + auto-assign)
   disabled?: boolean; // Disable buttons for trait cards
+  currentTurnIndex?: number; // Current turn index
+  turnOrder?: (string | "creation")[]; // Turn order array
+  communities?: Community[]; // Communities array
+  playerResources?: { name: string; resources: number }[]; // Player resources
+  turnAssist?: boolean; // Turn Assist setting
+  isCreationTurn?: boolean; // Whether current turn is Creation phase
 }
 
 export default function RevealedCardStack({
@@ -20,6 +27,12 @@ export default function RevealedCardStack({
   deckTitle,
   onSelect,
   disabled = false,
+  currentTurnIndex,
+  turnOrder,
+  communities,
+  playerResources,
+  turnAssist = true,
+  isCreationTurn = false,
 }: RevealedCardStackProps) {
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
@@ -93,6 +106,84 @@ export default function RevealedCardStack({
     }
   };
 
+  // Calculate total cost for trait cards
+  const getTraitCost = (card: CardType): number | null => {
+    if (deckTitle === "Individual Traits") {
+      return card.traitCost ?? 5;
+    } else if (deckTitle === "Community Traits") {
+      const baseCost = card.traitCost ?? 10;
+
+      // Check if it's a community's turn
+      const isCommunityTurn =
+        currentTurnIndex !== undefined &&
+        turnOrder &&
+        turnOrder.length > 0 &&
+        communities &&
+        currentTurnIndex < turnOrder.length &&
+        turnOrder[currentTurnIndex] !== "creation" &&
+        communities.some((c) => c.id === turnOrder[currentTurnIndex]);
+
+      if (isCommunityTurn && communities) {
+        // It's a community's turn - return base + member count
+        const currentTurn = turnOrder[currentTurnIndex];
+        const currentCommunity = communities.find((c) => c.id === currentTurn);
+        if (currentCommunity) {
+          return baseCost + currentCommunity.memberPlayerNames.length;
+        }
+      }
+
+      // Individual turn or Creation turn - return base cost (will show with icon on card)
+      return baseCost;
+    }
+    return null;
+  };
+
+  // Check if player/community has sufficient resources for a trait
+  const hasSufficientResources = (card: CardType): boolean => {
+    const cost = getTraitCost(card);
+    if (cost === null) return true;
+
+    if (deckTitle === "Individual Traits") {
+      // Check player resources
+      if (
+        currentTurnIndex !== undefined &&
+        turnOrder &&
+        turnOrder.length > 0 &&
+        playerResources &&
+        currentTurnIndex < turnOrder.length &&
+        turnOrder[currentTurnIndex] !== "creation"
+      ) {
+        const currentTurn = turnOrder[currentTurnIndex];
+        const isCommunity = communities?.some((c) => c.id === currentTurn);
+        if (!isCommunity) {
+          const player = playerResources.find((p) => p.name === currentTurn);
+          if (player) {
+            return player.resources >= cost;
+          }
+        }
+      }
+      return true; // If we can't determine, allow it
+    } else if (deckTitle === "Community Traits") {
+      // Check community resources
+      if (
+        currentTurnIndex !== undefined &&
+        turnOrder &&
+        turnOrder.length > 0 &&
+        communities &&
+        currentTurnIndex < turnOrder.length &&
+        turnOrder[currentTurnIndex] !== "creation"
+      ) {
+        const currentTurn = turnOrder[currentTurnIndex];
+        const community = communities.find((c) => c.id === currentTurn);
+        if (community) {
+          return community.resources >= cost;
+        }
+      }
+      return true; // If we can't determine, allow it
+    }
+    return true;
+  };
+
   if (cards.length === 0) {
     return null;
   }
@@ -134,7 +225,13 @@ export default function RevealedCardStack({
                   onClick={(e) => e.stopPropagation()}
                   className="flex justify-center"
                 >
-                  <Card card={card} deckTitle={deckTitle} />
+                  <Card
+                    card={card}
+                    deckTitle={deckTitle}
+                    currentTurnIndex={currentTurnIndex}
+                    turnOrder={turnOrder}
+                    communities={communities}
+                  />
                 </div>
                 <div className="px-4 pb-4 pt-2 flex justify-center">
                   <div className="w-64 max-w-full flex gap-2">
@@ -142,9 +239,19 @@ export default function RevealedCardStack({
                       deckTitle === "Community Traits") && (
                       <button
                         onClick={(e) => handleSelect(e, card, index)}
-                        disabled={disabled}
+                        disabled={
+                          disabled ||
+                          (turnAssist && !hasSufficientResources(card)) ||
+                          (turnAssist &&
+                            isCreationTurn &&
+                            deckTitle === "Community Traits")
+                        }
                         className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                          disabled
+                          disabled ||
+                          (turnAssist && !hasSufficientResources(card)) ||
+                          (turnAssist &&
+                            isCreationTurn &&
+                            deckTitle === "Community Traits")
                             ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                             : "bg-green-600 text-white hover:bg-green-700 active:scale-95"
                         }`}
@@ -153,18 +260,32 @@ export default function RevealedCardStack({
                             ? deckTitle === "Community Traits"
                               ? "Only available during community turns"
                               : "Only available during player turns"
+                            : turnAssist && !hasSufficientResources(card)
+                            ? "Insufficient resources"
+                            : turnAssist &&
+                              isCreationTurn &&
+                              deckTitle === "Community Traits"
+                            ? "Not available during Creation phase"
                             : undefined
                         }
                       >
-                        Select
+                        Select{" "}
+                        {(() => {
+                          const cost = getTraitCost(card);
+                          return cost !== null ? `(${cost})` : "";
+                        })()}
                       </button>
                     )}
                     <button
                       onClick={(e) => handleDiscard(e, card, index)}
                       disabled={
-                        disabled &&
-                        (deckTitle === "Community Traits" ||
-                          deckTitle === "Individual Traits")
+                        (disabled &&
+                          (deckTitle === "Community Traits" ||
+                            deckTitle === "Individual Traits")) ||
+                        (turnAssist &&
+                          isCreationTurn &&
+                          (deckTitle === "Community Traits" ||
+                            deckTitle === "Desperate Measures"))
                       }
                       className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                         deckTitle === "Individual Traits" ||
@@ -172,9 +293,13 @@ export default function RevealedCardStack({
                           ? "flex-1"
                           : "w-full"
                       } ${
-                        disabled &&
-                        (deckTitle === "Community Traits" ||
-                          deckTitle === "Individual Traits")
+                        (disabled &&
+                          (deckTitle === "Community Traits" ||
+                            deckTitle === "Individual Traits")) ||
+                        (turnAssist &&
+                          isCreationTurn &&
+                          (deckTitle === "Community Traits" ||
+                            deckTitle === "Desperate Measures"))
                           ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
                           : "bg-red-600 text-white hover:bg-red-700 active:scale-95"
                       }`}
@@ -185,6 +310,11 @@ export default function RevealedCardStack({
                           ? deckTitle === "Community Traits"
                             ? "Only available during community turns"
                             : "Only available during player turns"
+                          : turnAssist &&
+                            isCreationTurn &&
+                            (deckTitle === "Community Traits" ||
+                              deckTitle === "Desperate Measures")
+                          ? "Not available during Creation phase"
                           : undefined
                       }
                     >
@@ -238,14 +368,20 @@ export default function RevealedCardStack({
                   <button
                     onClick={(e) => handlePin(e, card, index)}
                     disabled={
-                      disabled &&
-                      (deckTitle === "Community Traits" ||
-                        deckTitle === "Individual Traits")
+                      (disabled &&
+                        (deckTitle === "Community Traits" ||
+                          deckTitle === "Individual Traits")) ||
+                      (turnAssist &&
+                        isCreationTurn &&
+                        deckTitle === "Community Traits")
                     }
                     className={`p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${
-                      disabled &&
-                      (deckTitle === "Community Traits" ||
-                        deckTitle === "Individual Traits")
+                      (disabled &&
+                        (deckTitle === "Community Traits" ||
+                          deckTitle === "Individual Traits")) ||
+                      (turnAssist &&
+                        isCreationTurn &&
+                        deckTitle === "Community Traits")
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-yellow-600"
                     }`}
@@ -257,6 +393,10 @@ export default function RevealedCardStack({
                         ? deckTitle === "Community Traits"
                           ? "Only available during community turns"
                           : "Only available during player turns"
+                        : turnAssist &&
+                          isCreationTurn &&
+                          deckTitle === "Community Traits"
+                        ? "Not available during Creation phase"
                         : "Pin card"
                     }
                   >
@@ -276,14 +416,22 @@ export default function RevealedCardStack({
                   <button
                     onClick={(e) => handleDiscard(e, card, index)}
                     disabled={
-                      disabled &&
-                      (deckTitle === "Community Traits" ||
-                        deckTitle === "Individual Traits")
+                      (disabled &&
+                        (deckTitle === "Community Traits" ||
+                          deckTitle === "Individual Traits")) ||
+                      (turnAssist &&
+                        isCreationTurn &&
+                        (deckTitle === "Community Traits" ||
+                          deckTitle === "Desperate Measures"))
                     }
                     className={`p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${
-                      disabled &&
-                      (deckTitle === "Community Traits" ||
-                        deckTitle === "Individual Traits")
+                      (disabled &&
+                        (deckTitle === "Community Traits" ||
+                          deckTitle === "Individual Traits")) ||
+                      (turnAssist &&
+                        isCreationTurn &&
+                        (deckTitle === "Community Traits" ||
+                          deckTitle === "Desperate Measures"))
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600"
                     }`}
@@ -295,6 +443,11 @@ export default function RevealedCardStack({
                         ? deckTitle === "Community Traits"
                           ? "Only available during community turns"
                           : "Only available during player turns"
+                        : turnAssist &&
+                          isCreationTurn &&
+                          (deckTitle === "Community Traits" ||
+                            deckTitle === "Desperate Measures")
+                        ? "Not available during Creation phase"
                         : "Discard card"
                     }
                   >
