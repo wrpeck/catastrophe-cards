@@ -15,6 +15,8 @@ interface DrawDeckProps {
   lastDrawPlayerName?: string | null;
   lastDrawRound?: number | null;
   disabled?: boolean; // Disable the draw button
+  individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
+  communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
 }
 
 export default function DrawDeck({
@@ -28,6 +30,8 @@ export default function DrawDeck({
   lastDrawPlayerName,
   lastDrawRound,
   disabled = false,
+  individualTraitCards = [],
+  communityTraitCards = [],
 }: DrawDeckProps) {
   // Load cards from JSON file and notify parent
   useEffect(() => {
@@ -97,7 +101,11 @@ export default function DrawDeck({
 
       {drawnCard && (
         <div className="mt-4 animate-fade-in flex flex-col items-center gap-2">
-          <Card card={drawnCard} />
+          <Card
+            card={drawnCard}
+            individualTraitCards={individualTraitCards}
+            communityTraitCards={communityTraitCards}
+          />
           {lastDrawPlayerName && (
             <p className="text-sm text-gray-600">
               Last Draw:{" "}

@@ -96,6 +96,7 @@ export default function Home() {
   const [activeDeckTab, setActiveDeckTab] =
     useState<DeckTab>("individualEvent");
   const [gameOutcome, setGameOutcome] = useState<"win" | "lose" | null>(null);
+  const backgroundRef = useRef<HTMLDivElement>(null);
 
   // Deck base card data (loaded from JSON)
   const [deck1Cards, setDeck1Cards] = useState<CardType[]>([]);
@@ -218,6 +219,21 @@ export default function Home() {
       }
     }
     loadSettings();
+  }, []);
+
+  // Parallax scrolling effect for background
+  useEffect(() => {
+    const handleScroll = () => {
+      if (backgroundRef.current) {
+        const scrolled = window.scrollY;
+        // Move background at 30% of scroll speed for parallax effect
+        const parallaxOffset = scrolled * 0.3;
+        backgroundRef.current.style.backgroundPosition = `center ${parallaxOffset}px`;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Load deck cards
@@ -2496,9 +2512,12 @@ export default function Home() {
         </div>
       )}
       <GameOutcomeBanner outcome={gameOutcome} />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
+      <div
+        ref={backgroundRef}
+        className="min-h-screen app-background flex flex-col"
+      >
         <div
-          className="flex-1 flex flex-col py-8 pb-64 md:pb-48"
+          className="flex-1 flex flex-col py-8 pb-64 md:pb-48 relative z-10"
           style={gameOutcome ? { paddingTop: "80px" } : {}}
         >
           <div className="w-full">
@@ -2540,6 +2559,8 @@ export default function Home() {
                       pinnedCards={pinnedCards}
                       cardPlayerAssignments={cardPlayerAssignments}
                       communityTraitAssignments={communityTraitAssignments}
+                      individualTraitCards={deck3Cards}
+                      communityTraitCards={deck4Cards}
                     />
                   )}
                 </div>
@@ -2603,6 +2624,8 @@ export default function Home() {
                       disabled={shouldDisableForTurn(
                         () => !isCurrentTurnPlayer()
                       )}
+                      individualTraitCards={deck3Cards}
+                      communityTraitCards={deck4Cards}
                     />
                   ),
                   communityEvent: (
@@ -2619,6 +2642,8 @@ export default function Home() {
                       disabled={shouldDisableForTurn(
                         () => isCurrentTurnPlayer() || isCreationTurn()
                       )}
+                      individualTraitCards={deck3Cards}
+                      communityTraitCards={deck4Cards}
                     />
                   ),
                   individualTraits: (
@@ -2646,6 +2671,8 @@ export default function Home() {
                       communities={communities}
                       playerResources={playerResources}
                       turnAssist={settings.turnAssist ?? true}
+                      individualTraitCards={deck3Cards}
+                      communityTraitCards={deck4Cards}
                     />
                   ),
                   communityTraits: (
@@ -2674,6 +2701,8 @@ export default function Home() {
                       playerResources={playerResources}
                       turnAssist={settings.turnAssist ?? true}
                       isCreationTurn={isCreationTurn()}
+                      individualTraitCards={deck3Cards}
+                      communityTraitCards={deck4Cards}
                     />
                   ),
                   desperateMeasures: (
@@ -2697,6 +2726,8 @@ export default function Home() {
                       communities={communities}
                       turnAssist={settings.turnAssist ?? true}
                       isCreationTurn={isCreationTurn()}
+                      individualTraitCards={deck3Cards}
+                      communityTraitCards={deck4Cards}
                     />
                   ),
                   wanderer: (
@@ -2722,6 +2753,8 @@ export default function Home() {
                           )
                         );
                       })}
+                      individualTraitCards={deck3Cards}
+                      communityTraitCards={deck4Cards}
                     />
                   ),
                 }}
@@ -2744,6 +2777,8 @@ export default function Home() {
         communityTraitAssignments={communityTraitAssignments}
         onAssignCommunityTrait={handleAssignCommunityTrait}
         getCommunityTraitAssignment={getCommunityTraitAssignment}
+        individualTraitCards={deck3Cards}
+        communityTraitCards={deck4Cards}
       />
       {!isLoadingSettings && (
         <CountersSidebar

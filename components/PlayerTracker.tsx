@@ -3,6 +3,8 @@
 import { useState } from "react";
 import CommunitiesTracker from "./CommunitiesTracker";
 import { PinnedCardWithDeck } from "@/types/gameState";
+import { Card as CardType } from "@/types/card";
+import TraitEffectInfobox from "./TraitEffectInfobox";
 
 interface Player {
   name: string;
@@ -47,6 +49,8 @@ interface PlayerTrackerProps {
   pinnedCards: PinnedCardWithDeck[];
   cardPlayerAssignments: Map<string, string>;
   communityTraitAssignments: Map<string, string>;
+  individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
+  communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
 }
 
 export default function PlayerTracker({
@@ -75,10 +79,21 @@ export default function PlayerTracker({
   pinnedCards,
   cardPlayerAssignments,
   communityTraitAssignments,
+  individualTraitCards = [],
+  communityTraitCards = [],
 }: PlayerTrackerProps) {
   const [activeTab, setActiveTab] = useState<"players" | "communities">(
     "players"
   );
+  const [showTraitInfobox, setShowTraitInfobox] = useState(false);
+  const [selectedTraitCard, setSelectedTraitCard] = useState<CardType | null>(
+    null
+  );
+  const [selectedTraitName, setSelectedTraitName] = useState<string>("");
+  const [traitInfoboxPosition, setTraitInfoboxPosition] = useState<{
+    top: number;
+    left: number;
+  }>({ top: 0, left: 0 });
 
   const handleIncrement = (index: number) => {
     onResourceChange(index, players[index].resources + 1);
@@ -182,13 +197,39 @@ export default function PlayerTracker({
                         {assignedTraits.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {assignedTraits.map((trait, traitIndex) => (
-                              <span
+                              <button
                                 key={`${player.name}-${trait.id}-${trait.deckTitle}-${traitIndex}`}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 cursor-help"
-                                title={trait.effect || trait.displayName}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Toggle infobox if already showing
+                                  if (
+                                    showTraitInfobox &&
+                                    selectedTraitName === trait.displayName
+                                  ) {
+                                    setShowTraitInfobox(false);
+                                    setSelectedTraitCard(null);
+                                    setSelectedTraitName("");
+                                    return;
+                                  }
+
+                                  // The trait card is already available since it's from pinnedCards
+                                  const buttonRect = (
+                                    e.currentTarget as HTMLElement
+                                  ).getBoundingClientRect();
+                                  // Position infobox below the badge
+                                  setTraitInfoboxPosition({
+                                    top: buttonRect.bottom + 8,
+                                    left: buttonRect.left,
+                                  });
+                                  setSelectedTraitCard(trait);
+                                  setSelectedTraitName(trait.displayName);
+                                  setShowTraitInfobox(true);
+                                }}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 transition-colors cursor-pointer"
+                                title={`Click to view trait effect: ${trait.displayName}`}
                               >
                                 {trait.displayName}
-                              </span>
+                              </button>
                             ))}
                           </div>
                         )}
@@ -352,6 +393,22 @@ export default function PlayerTracker({
           turnOrder={turnOrder}
           pinnedCards={pinnedCards}
           communityTraitAssignments={communityTraitAssignments}
+          individualTraitCards={individualTraitCards}
+          communityTraitCards={communityTraitCards}
+        />
+      )}
+
+      {/* Trait Effect Infobox */}
+      {showTraitInfobox && selectedTraitCard && (
+        <TraitEffectInfobox
+          traitName={selectedTraitName}
+          traitCard={selectedTraitCard}
+          position={traitInfoboxPosition}
+          onClose={() => {
+            setShowTraitInfobox(false);
+            setSelectedTraitCard(null);
+            setSelectedTraitName("");
+          }}
         />
       )}
     </div>

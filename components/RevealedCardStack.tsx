@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card as CardType } from "@/types/card";
 import { Community } from "@/types/gameState";
 import Card from "./Card";
+import TraitEffectInfobox from "./TraitEffectInfobox";
 
 interface RevealedCardStackProps {
   cards: CardType[];
@@ -18,6 +19,8 @@ interface RevealedCardStackProps {
   playerResources?: { name: string; resources: number }[]; // Player resources
   turnAssist?: boolean; // Turn Assist setting
   isCreationTurn?: boolean; // Whether current turn is Creation phase
+  individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
+  communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
 }
 
 export default function RevealedCardStack({
@@ -33,8 +36,19 @@ export default function RevealedCardStack({
   playerResources,
   turnAssist = true,
   isCreationTurn = false,
+  individualTraitCards = [],
+  communityTraitCards = [],
 }: RevealedCardStackProps) {
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [showTraitInfobox, setShowTraitInfobox] = useState(false);
+  const [selectedTraitCard, setSelectedTraitCard] = useState<CardType | null>(
+    null
+  );
+  const [selectedTraitName, setSelectedTraitName] = useState<string>("");
+  const [traitInfoboxPosition, setTraitInfoboxPosition] = useState<{
+    top: number;
+    left: number;
+  }>({ top: 0, left: 0 });
 
   const getCardInstanceId = (card: CardType, index: number) => {
     return `${card.id}-${index}`;
@@ -231,6 +245,8 @@ export default function RevealedCardStack({
                     currentTurnIndex={currentTurnIndex}
                     turnOrder={turnOrder}
                     communities={communities}
+                    individualTraitCards={individualTraitCards}
+                    communityTraitCards={communityTraitCards}
                   />
                 </div>
                 <div className="px-4 pb-4 pt-2 flex justify-center">
@@ -339,9 +355,45 @@ export default function RevealedCardStack({
               >
                 {/* Trait Effect Icon */}
                 {card.isTraitEffect && (
-                  <div
-                    className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 z-10"
-                    title={`Trait Effect: ${card.isTraitEffect}`}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Toggle infobox if already showing
+                      if (
+                        showTraitInfobox &&
+                        selectedTraitName === card.isTraitEffect
+                      ) {
+                        setShowTraitInfobox(false);
+                        setSelectedTraitCard(null);
+                        setSelectedTraitName("");
+                        return;
+                      }
+
+                      // Search for the trait card in both individual and community trait decks
+                      const traitCard =
+                        individualTraitCards.find(
+                          (t) => t.displayName === card.isTraitEffect
+                        ) ||
+                        communityTraitCards.find(
+                          (t) => t.displayName === card.isTraitEffect
+                        );
+
+                      if (traitCard) {
+                        const buttonRect = (
+                          e.currentTarget as HTMLElement
+                        ).getBoundingClientRect();
+                        // Position infobox below the badge, slightly to the right
+                        setTraitInfoboxPosition({
+                          top: buttonRect.bottom + 8,
+                          left: buttonRect.left,
+                        });
+                        setSelectedTraitCard(traitCard);
+                        setSelectedTraitName(card.isTraitEffect);
+                        setShowTraitInfobox(true);
+                      }
+                    }}
+                    className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 z-10 hover:bg-blue-200 transition-colors cursor-pointer"
+                    title={`Click to view trait effect: ${card.isTraitEffect}`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -354,7 +406,7 @@ export default function RevealedCardStack({
                     <span className="text-xs font-medium whitespace-nowrap">
                       {card.isTraitEffect}
                     </span>
-                  </div>
+                  </button>
                 )}
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-semibold text-gray-900 truncate">
@@ -489,6 +541,20 @@ export default function RevealedCardStack({
       <p className="text-xs text-gray-500 mt-2 text-center">
         Click a card to expand, or use the buttons to pin/discard
       </p>
+
+      {/* Trait Effect Infobox */}
+      {showTraitInfobox && selectedTraitCard && (
+        <TraitEffectInfobox
+          traitName={selectedTraitName}
+          traitCard={selectedTraitCard}
+          position={traitInfoboxPosition}
+          onClose={() => {
+            setShowTraitInfobox(false);
+            setSelectedTraitCard(null);
+            setSelectedTraitName("");
+          }}
+        />
+      )}
     </div>
   );
 }

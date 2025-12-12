@@ -1,5 +1,7 @@
 import { Card as CardType } from "@/types/card";
 import { Community } from "@/types/gameState";
+import { useState } from "react";
+import TraitEffectInfobox from "./TraitEffectInfobox";
 
 interface CardProps {
   card: CardType;
@@ -14,6 +16,8 @@ interface CardProps {
   currentTurnIndex?: number; // Current turn index
   turnOrder?: (string | "creation")[]; // Turn order array
   communities?: Community[]; // Communities array
+  individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
+  communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
 }
 
 export default function Card({
@@ -29,13 +33,53 @@ export default function Card({
   currentTurnIndex,
   turnOrder,
   communities,
+  individualTraitCards = [],
+  communityTraitCards = [],
 }: CardProps) {
+  const [showTraitInfobox, setShowTraitInfobox] = useState(false);
+  const [selectedTraitCard, setSelectedTraitCard] = useState<CardType | null>(
+    null
+  );
+  const [traitInfoboxPosition, setTraitInfoboxPosition] = useState<{
+    top: number;
+    left: number;
+  }>({ top: 0, left: 0 });
   const handlePinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isPinned && onUnpin) {
       onUnpin();
     } else if (!isPinned && onPin) {
       onPin();
+    }
+  };
+
+  const handleTraitEffectClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!card.isTraitEffect) return;
+
+    // Toggle infobox if already showing
+    if (showTraitInfobox) {
+      setShowTraitInfobox(false);
+      setSelectedTraitCard(null);
+      return;
+    }
+
+    // Search for the trait card in both individual and community trait decks
+    const traitCard =
+      individualTraitCards.find((t) => t.displayName === card.isTraitEffect) ||
+      communityTraitCards.find((t) => t.displayName === card.isTraitEffect);
+
+    if (traitCard) {
+      const buttonRect = (
+        e.currentTarget as HTMLElement
+      ).getBoundingClientRect();
+      // Position infobox below the badge, slightly to the right
+      setTraitInfoboxPosition({
+        top: buttonRect.bottom + 8,
+        left: buttonRect.left,
+      });
+      setSelectedTraitCard(traitCard);
+      setShowTraitInfobox(true);
     }
   };
 
@@ -249,9 +293,10 @@ export default function Card({
 
       {/* Trait Effect Icon - positioned at bottom right */}
       {card.isTraitEffect && (
-        <div
-          className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-100 text-blue-700 z-10"
-          title={`Trait Effect: ${card.isTraitEffect}`}
+        <button
+          onClick={handleTraitEffectClick}
+          className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-100 text-blue-700 z-10 hover:bg-blue-200 transition-colors cursor-pointer"
+          title={`Click to view trait effect: ${card.isTraitEffect}`}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -264,7 +309,20 @@ export default function Card({
           <span className="text-xs font-medium whitespace-nowrap">
             {card.isTraitEffect}
           </span>
-        </div>
+        </button>
+      )}
+
+      {/* Trait Effect Infobox */}
+      {showTraitInfobox && selectedTraitCard && (
+        <TraitEffectInfobox
+          traitName={card.isTraitEffect || ""}
+          traitCard={selectedTraitCard}
+          position={traitInfoboxPosition}
+          onClose={() => {
+            setShowTraitInfobox(false);
+            setSelectedTraitCard(null);
+          }}
+        />
       )}
     </div>
   );

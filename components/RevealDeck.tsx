@@ -27,6 +27,8 @@ interface RevealDeckProps {
   playerResources?: { name: string; resources: number }[]; // Player resources
   turnAssist?: boolean; // Turn Assist setting
   isCreationTurn?: boolean; // Whether current turn is Creation phase
+  individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
+  communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
 }
 
 export default function RevealDeck({
@@ -51,6 +53,8 @@ export default function RevealDeck({
   playerResources,
   turnAssist,
   isCreationTurn,
+  individualTraitCards = [],
+  communityTraitCards = [],
 }: RevealDeckProps) {
   // Expose addToDiscard function to parent
   useEffect(() => {
@@ -130,6 +134,8 @@ export default function RevealDeck({
             playerResources={playerResources}
             turnAssist={turnAssist}
             isCreationTurn={isCreationTurn}
+            individualTraitCards={individualTraitCards}
+            communityTraitCards={communityTraitCards}
           />
         </div>
       )}

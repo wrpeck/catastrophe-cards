@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Card as CardType } from "@/types/card";
 import { PinnedCardWithDeck } from "@/types/gameState";
 import Card from "./Card";
+import TraitEffectInfobox from "./TraitEffectInfobox";
 
 interface Community {
   id: string;
@@ -29,6 +30,8 @@ interface PinnedCardsBarProps {
     communityId: string | null
   ) => void;
   getCommunityTraitAssignment: (card: PinnedCardWithDeck) => string | null;
+  individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
+  communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
 }
 
 type ActiveTab = "individual" | "community";
@@ -47,6 +50,8 @@ export default function PinnedCardsBar({
   communityTraitAssignments,
   onAssignCommunityTrait,
   getCommunityTraitAssignment,
+  individualTraitCards = [],
+  communityTraitCards = [],
 }: PinnedCardsBarProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("individual");
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -76,6 +81,15 @@ export default function PinnedCardsBar({
     top: number;
     left: number;
   } | null>(null);
+  const [showTraitInfobox, setShowTraitInfobox] = useState(false);
+  const [selectedTraitCard, setSelectedTraitCard] = useState<CardType | null>(
+    null
+  );
+  const [selectedTraitName, setSelectedTraitName] = useState<string>("");
+  const [traitInfoboxPosition, setTraitInfoboxPosition] = useState<{
+    top: number;
+    left: number;
+  }>({ top: 0, left: 0 });
 
   const individualCards = pinnedCards.filter(
     (card) => card.deckTitle === "Individual Traits"
@@ -258,7 +272,7 @@ export default function PinnedCardsBar({
       <div className="relative">
         {/* Left fade gradient */}
         {canScrollLeft && (
-          <div className="absolute left-0 top-0 bottom-2 w-12 bg-gradient-to-r from-white to-transparent pointer-events-none z-10 flex items-center">
+          <div className="absolute left-0 top-0 bottom-2 w-12 bg-gradient-to-r from-[#F5D5C8] to-transparent pointer-events-none z-10 flex items-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5 text-gray-400 ml-1"
@@ -278,7 +292,7 @@ export default function PinnedCardsBar({
 
         {/* Right fade gradient */}
         {canScrollRight && (
-          <div className="absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-white to-transparent pointer-events-none z-10 flex items-center justify-end">
+          <div className="absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-[#F5D5C8] to-transparent pointer-events-none z-10 flex items-center justify-end">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5 text-gray-400 mr-1"
@@ -298,7 +312,7 @@ export default function PinnedCardsBar({
 
         <div
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide"
+          className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide"
         >
           {cards.length === 0 ? (
             <div className="flex items-center justify-center w-full py-2">
@@ -343,15 +357,51 @@ export default function PinnedCardsBar({
                         : card.type === "mixed"
                         ? "bg-gradient-to-br from-green-100 to-red-100"
                         : "bg-white"
-                    } rounded-lg border-2 border-yellow-400 shadow-md px-4 py-3 min-w-[120px] cursor-pointer transition-all duration-200 hover:shadow-lg relative ${
+                    } rounded-lg border-2 border-yellow-400 shadow-md px-3 py-2 min-w-[120px] cursor-pointer transition-all duration-200 hover:shadow-lg relative ${
                       isExpanded ? "bg-yellow-50 border-yellow-500" : ""
                     }`}
                   >
                     {/* Trait Effect Icon */}
                     {card.isTraitEffect && (
-                      <div
-                        className="absolute top-1 right-1 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 z-10"
-                        title={`Trait Effect: ${card.isTraitEffect}`}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Toggle infobox if already showing
+                          if (
+                            showTraitInfobox &&
+                            selectedTraitName === card.isTraitEffect
+                          ) {
+                            setShowTraitInfobox(false);
+                            setSelectedTraitCard(null);
+                            setSelectedTraitName("");
+                            return;
+                          }
+
+                          // Search for the trait card in both individual and community trait decks
+                          const traitCard =
+                            individualTraitCards.find(
+                              (t) => t.displayName === card.isTraitEffect
+                            ) ||
+                            communityTraitCards.find(
+                              (t) => t.displayName === card.isTraitEffect
+                            );
+
+                          if (traitCard) {
+                            const buttonRect = (
+                              e.currentTarget as HTMLElement
+                            ).getBoundingClientRect();
+                            // Position infobox below the badge, slightly to the right
+                            setTraitInfoboxPosition({
+                              top: buttonRect.bottom + 8,
+                              left: buttonRect.left,
+                            });
+                            setSelectedTraitCard(traitCard);
+                            setSelectedTraitName(card.isTraitEffect);
+                            setShowTraitInfobox(true);
+                          }
+                        }}
+                        className="absolute top-1 right-1 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 z-10 hover:bg-blue-200 transition-colors cursor-pointer"
+                        title={`Click to view trait effect: ${card.isTraitEffect}`}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -364,9 +414,9 @@ export default function PinnedCardsBar({
                         <span className="text-xs font-medium whitespace-nowrap">
                           {card.isTraitEffect}
                         </span>
-                      </div>
+                      </button>
                     )}
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-gray-900 truncate flex-1">
                           {card.displayName}
@@ -620,9 +670,6 @@ export default function PinnedCardsBar({
                           </span>
                         </div>
                       )}
-                      <p className="text-xs text-gray-500 truncate">
-                        {card.deckTitle}
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -656,14 +703,16 @@ export default function PinnedCardsBar({
             }}
             isPinned={true}
             showPinButton={true}
+            individualTraitCards={individualTraitCards}
+            communityTraitCards={communityTraitCards}
           />
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 shadow-lg z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#F5D5C8] border-t border-[#E8C4B5] shadow-lg z-50">
         {isCollapsed ? (
           // Collapsed view - compact single row
-          <div className="w-full px-4 sm:px-6 lg:px-8 py-2">
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-1.5">
             <div className="flex items-center justify-between gap-4 text-xs">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1">
@@ -676,12 +725,14 @@ export default function PinnedCardsBar({
                     <path d="M16 12V4h1a2 2 0 0 0 0-4H7a2 2 0 1 0 0 4h1v8a2 2 0 0 1-2 2H5a2 2 0 0 0 0 4h14a2 2 0 0 0 0-4h-3a2 2 0 0 1-2-2zm-5-3V4h2v5a1 1 0 1 1-2 0z" />
                   </svg>
                   <span className="text-gray-600 font-medium">
-                    Individual: <span className="font-bold">{individualCards.length}</span>
+                    Individual:{" "}
+                    <span className="font-bold">{individualCards.length}</span>
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-600 font-medium">
-                    Community: <span className="font-bold">{communityCards.length}</span>
+                    Community:{" "}
+                    <span className="font-bold">{communityCards.length}</span>
                   </span>
                 </div>
               </div>
@@ -690,14 +741,16 @@ export default function PinnedCardsBar({
                   Round: <span className="font-bold">{roundValue}</span>
                 </span>
                 <span className="text-red-700 font-medium">
-                  Extinction: <span className="font-bold">{extinctionValue}</span>
+                  Extinction:{" "}
+                  <span className="font-bold">{extinctionValue}</span>
                 </span>
                 <span className="text-blue-700 font-medium">
-                  Civilization: <span className="font-bold">{civilizationValue}</span>
+                  Civilization:{" "}
+                  <span className="font-bold">{civilizationValue}</span>
                 </span>
                 <button
                   onClick={() => setIsCollapsed(false)}
-                  className="p-1 rounded hover:bg-gray-100 transition-colors"
+                  className="p-1 rounded hover:bg-[#E8C4B5] transition-colors"
                   aria-label="Expand pinned cards"
                   title="Expand"
                 >
@@ -721,64 +774,50 @@ export default function PinnedCardsBar({
           </div>
         ) : (
           // Expanded view - full content
-          <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-2">
+            <div className="flex items-center justify-end mb-2 gap-2">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-gray-700 font-medium">
+                  Round: <span className="font-bold">{roundValue}</span>
+                </span>
+                <span className="text-red-700 font-medium">
+                  Extinction:{" "}
+                  <span className="font-bold">{extinctionValue}</span>
+                </span>
+                <span className="text-blue-700 font-medium">
+                  Civilization:{" "}
+                  <span className="font-bold">{civilizationValue}</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setIsCollapsed(true)}
+                className="p-1 rounded hover:bg-[#E8C4B5] transition-colors"
+                aria-label="Collapse pinned cards"
+                title="Collapse"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-yellow-500"
+                  className="h-5 w-5 text-gray-600"
+                  fill="none"
                   viewBox="0 0 24 24"
-                  fill="currentColor"
+                  stroke="currentColor"
                 >
-                  <path d="M16 12V4h1a2 2 0 0 0 0-4H7a2 2 0 1 0 0 4h1v8a2 2 0 0 1-2 2H5a2 2 0 0 0 0 4h14a2 2 0 0 0 0-4h-3a2 2 0 0 1-2-2zm-5-3V4h2v5a1 1 0 1 1-2 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Pinned Cards ({pinnedCards.length})
-                </h3>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="text-gray-700 font-medium">
-                    Round: <span className="font-bold">{roundValue}</span>
-                  </span>
-                  <span className="text-red-700 font-medium">
-                    Extinction: <span className="font-bold">{extinctionValue}</span>
-                  </span>
-                  <span className="text-blue-700 font-medium">
-                    Civilization:{" "}
-                    <span className="font-bold">{civilizationValue}</span>
-                  </span>
-                </div>
-                <button
-                  onClick={() => setIsCollapsed(true)}
-                  className="p-1 rounded hover:bg-gray-100 transition-colors"
-                  aria-label="Collapse pinned cards"
-                  title="Collapse"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-gray-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-              </div>
+              </button>
             </div>
 
             {/* Mobile: Tab Toggle */}
-            <div className="md:hidden mb-3">
+            <div className="md:hidden mb-2">
               <div className="flex gap-2 border-b border-gray-200">
                 <button
                   onClick={() => setActiveTab("individual")}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`px-4 py-1.5 text-sm font-medium transition-colors ${
                     activeTab === "individual"
                       ? "text-yellow-600 border-b-2 border-yellow-600"
                       : "text-gray-500 hover:text-gray-700"
@@ -788,7 +827,7 @@ export default function PinnedCardsBar({
                 </button>
                 <button
                   onClick={() => setActiveTab("community")}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`px-4 py-1.5 text-sm font-medium transition-colors ${
                     activeTab === "community"
                       ? "text-yellow-600 border-b-2 border-yellow-600"
                       : "text-gray-500 hover:text-gray-700"
@@ -807,7 +846,7 @@ export default function PinnedCardsBar({
                   activeTab === "individual" ? "block" : "hidden"
                 } md:block`}
               >
-                <h4 className="text-xs font-semibold text-gray-600 mb-2">
+                <h4 className="text-xs font-semibold text-gray-600 mb-1.5">
                   Individual Traits ({individualCards.length})
                 </h4>
                 {renderCardContainer(
@@ -825,7 +864,7 @@ export default function PinnedCardsBar({
                   activeTab === "community" ? "block" : "hidden"
                 } md:block`}
               >
-                <h4 className="text-xs font-semibold text-gray-600 mb-2">
+                <h4 className="text-xs font-semibold text-gray-600 mb-1.5">
                   Community Traits ({communityCards.length})
                 </h4>
                 {renderCardContainer(
@@ -840,6 +879,20 @@ export default function PinnedCardsBar({
           </div>
         )}
       </div>
+
+      {/* Trait Effect Infobox */}
+      {showTraitInfobox && selectedTraitCard && (
+        <TraitEffectInfobox
+          traitName={selectedTraitName}
+          traitCard={selectedTraitCard}
+          position={traitInfoboxPosition}
+          onClose={() => {
+            setShowTraitInfobox(false);
+            setSelectedTraitCard(null);
+            setSelectedTraitName("");
+          }}
+        />
+      )}
     </>
   );
 }

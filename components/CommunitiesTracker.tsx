@@ -3,6 +3,8 @@
 import { useState } from "react";
 import CommunityModal from "./CommunityModal";
 import { PinnedCardWithDeck } from "@/types/gameState";
+import { Card as CardType } from "@/types/card";
+import TraitEffectInfobox from "./TraitEffectInfobox";
 
 interface Community {
   id: string;
@@ -41,6 +43,8 @@ interface CommunitiesTrackerProps {
   turnOrder: (string | "creation")[];
   pinnedCards: PinnedCardWithDeck[];
   communityTraitAssignments: Map<string, string>;
+  individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
+  communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
 }
 
 export default function CommunitiesTracker({
@@ -58,10 +62,21 @@ export default function CommunitiesTracker({
   turnOrder,
   pinnedCards,
   communityTraitAssignments,
+  individualTraitCards = [],
+  communityTraitCards = [],
 }: CommunitiesTrackerProps) {
   const [editingCommunityId, setEditingCommunityId] = useState<string | null>(
     null
   );
+  const [showTraitInfobox, setShowTraitInfobox] = useState(false);
+  const [selectedTraitCard, setSelectedTraitCard] = useState<CardType | null>(
+    null
+  );
+  const [selectedTraitName, setSelectedTraitName] = useState<string>("");
+  const [traitInfoboxPosition, setTraitInfoboxPosition] = useState<{
+    top: number;
+    left: number;
+  }>({ top: 0, left: 0 });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [adjustmentValues, setAdjustmentValues] = useState<Map<string, string>>(
     new Map()
@@ -370,20 +385,20 @@ export default function CommunitiesTracker({
                       const upkeepCost =
                         community.memberPlayerNames.length *
                         communityCostPerMember;
-                      const wouldGoBelowOne =
-                        community.resources - upkeepCost < 1;
+                      const wouldGoBelowZero =
+                        community.resources - upkeepCost < 0;
                       return (
                         <button
                           onClick={() => handleUpkeep(community.id)}
-                          disabled={wouldGoBelowOne}
+                          disabled={wouldGoBelowZero}
                           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors touch-manipulation ${
-                            wouldGoBelowOne
+                            wouldGoBelowZero
                               ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                               : "bg-orange-600 text-white hover:bg-orange-700 active:bg-orange-800"
                           }`}
                           aria-label={`Pay upkeep for ${community.name}`}
                           title={
-                            wouldGoBelowOne
+                            wouldGoBelowZero
                               ? "Insufficient resources for upkeep"
                               : `Pay upkeep: ${upkeepCost} resources`
                           }
@@ -409,13 +424,39 @@ export default function CommunitiesTracker({
                     return assignedTraits.length > 0 ? (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {assignedTraits.map((trait, traitIndex) => (
-                          <span
+                          <button
                             key={`${community.id}-${trait.id}-${trait.deckTitle}-${traitIndex}`}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 cursor-help"
-                            title={trait.effect || trait.displayName}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Toggle infobox if already showing
+                              if (
+                                showTraitInfobox &&
+                                selectedTraitName === trait.displayName
+                              ) {
+                                setShowTraitInfobox(false);
+                                setSelectedTraitCard(null);
+                                setSelectedTraitName("");
+                                return;
+                              }
+
+                              // The trait card is already available since it's from pinnedCards
+                              const buttonRect = (
+                                e.currentTarget as HTMLElement
+                              ).getBoundingClientRect();
+                              // Position infobox below the badge
+                              setTraitInfoboxPosition({
+                                top: buttonRect.bottom + 8,
+                                left: buttonRect.left,
+                              });
+                              setSelectedTraitCard(trait);
+                              setSelectedTraitName(trait.displayName);
+                              setShowTraitInfobox(true);
+                            }}
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors cursor-pointer"
+                            title={`Click to view trait effect: ${trait.displayName}`}
                           >
                             {trait.displayName}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     ) : null;
@@ -440,6 +481,20 @@ export default function CommunitiesTracker({
           editingCommunity={editingCommunity}
           playerResources={playerResources}
           communityCostPerMember={communityCostPerMember}
+        />
+      )}
+
+      {/* Trait Effect Infobox */}
+      {showTraitInfobox && selectedTraitCard && (
+        <TraitEffectInfobox
+          traitName={selectedTraitName}
+          traitCard={selectedTraitCard}
+          position={traitInfoboxPosition}
+          onClose={() => {
+            setShowTraitInfobox(false);
+            setSelectedTraitCard(null);
+            setSelectedTraitName("");
+          }}
         />
       )}
     </>
