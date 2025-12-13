@@ -2531,6 +2531,8 @@ export default function Home() {
                     currentTurnIndex={currentTurnIndex}
                     turnOrder={turnOrder}
                     communities={communities}
+                    pinnedCards={pinnedCards}
+                    cardPlayerAssignments={cardPlayerAssignments}
                   />
                   {!isLoadingSettings && (
                     <PlayerTracker
