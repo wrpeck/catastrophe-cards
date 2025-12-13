@@ -417,6 +417,57 @@ export default function RevealedCardStack({
                   </p>
                 </div>
                 <div className="flex items-center gap-2 ml-3">
+                  {(deckTitle === "Individual Traits" ||
+                    deckTitle === "Community Traits") && (
+                    <button
+                      onClick={(e) => handlePin(e, card, index)}
+                      disabled={
+                        (disabled &&
+                          (deckTitle === "Community Traits" ||
+                            deckTitle === "Individual Traits")) ||
+                        (turnAssist && !hasSufficientResources(card)) ||
+                        (turnAssist &&
+                          isCreationTurn &&
+                          deckTitle === "Community Traits")
+                      }
+                      className={`flex items-center justify-center w-7 h-7 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${
+                        (disabled &&
+                          (deckTitle === "Community Traits" ||
+                            deckTitle === "Individual Traits")) ||
+                        (turnAssist && !hasSufficientResources(card)) ||
+                        (turnAssist &&
+                          isCreationTurn &&
+                          deckTitle === "Community Traits")
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-700"
+                      }`}
+                      aria-label="Pin card"
+                      title={
+                        disabled &&
+                        (deckTitle === "Community Traits" ||
+                          deckTitle === "Individual Traits")
+                          ? deckTitle === "Community Traits"
+                            ? "Only available during community turns"
+                            : "Only available during player turns"
+                          : turnAssist && !hasSufficientResources(card)
+                          ? "Insufficient resources"
+                          : turnAssist &&
+                            isCreationTurn &&
+                            deckTitle === "Community Traits"
+                          ? "Not available during Creation phase"
+                          : "Pin card"
+                      }
+                    >
+                      <span className="text-xs font-semibold">
+                        {(() => {
+                          const cost = getTraitCost(card);
+                          return cost !== null ? cost : "?";
+                        })()}
+                      </span>
+                    </button>
+                  )}
+                  {deckTitle !== "Individual Traits" &&
+                    deckTitle !== "Community Traits" && (
                   <button
                     onClick={(e) => handlePin(e, card, index)}
                     disabled={
@@ -465,6 +516,7 @@ export default function RevealedCardStack({
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
                   </button>
+                    )}
                   <button
                     onClick={(e) => handleDiscard(e, card, index)}
                     disabled={

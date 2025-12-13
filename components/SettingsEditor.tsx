@@ -3,6 +3,13 @@
 import { useState, useEffect } from "react";
 import { Settings } from "@/types/gameState";
 
+const BACKGROUND_OPTIONS = [
+  { value: "background.png", label: "Default" },
+  { value: "background-tall.png", label: "Tall" },
+  { value: "background-smoke.png", label: "Smoke" },
+  { value: "background-old.jpeg", label: "Old" },
+];
+
 interface SettingsEditorProps {
   settings: Settings;
   onSettingsChange: (settings: Settings) => void;
@@ -14,11 +21,45 @@ export default function SettingsEditor({
 }: SettingsEditorProps) {
   const [localSettings, setLocalSettings] = useState<Settings>(settings);
   const [hasChanges, setHasChanges] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("backgroundImage") || "background.png";
+    }
+    return "background.png";
+  });
 
   // Sync localSettings when settings prop changes
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
+
+  // Load background from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("backgroundImage");
+      if (saved) {
+        setBackgroundImage(saved);
+        updateBackgroundImage(saved);
+      }
+    }
+  }, []);
+
+  const updateBackgroundImage = (imageName: string) => {
+    const backgroundElement = document.querySelector(
+      ".app-background"
+    ) as HTMLElement;
+    if (backgroundElement) {
+      backgroundElement.style.backgroundImage = `url("/images/${imageName}")`;
+    }
+  };
+
+  const handleBackgroundChange = (imageName: string) => {
+    setBackgroundImage(imageName);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("backgroundImage", imageName);
+    }
+    updateBackgroundImage(imageName);
+  };
 
   const handleExtinctionMaxChange = (value: number) => {
     const updated = { ...localSettings, extinctionCounterMax: value };
@@ -192,6 +233,28 @@ export default function SettingsEditor({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Background Image */}
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Background Image
+        </label>
+        <select
+          value={backgroundImage}
+          onChange={(e) => handleBackgroundChange(e.target.value)}
+          className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          {BACKGROUND_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-500 mt-1">
+          Change the background image. Add new images to /public/images/ and
+          update the list above.
+        </p>
       </div>
 
       {/* Players */}

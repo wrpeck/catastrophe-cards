@@ -98,6 +98,16 @@ export default function Home() {
   const [gameOutcome, setGameOutcome] = useState<"win" | "lose" | null>(null);
   const backgroundRef = useRef<HTMLDivElement>(null);
 
+  // Load background image from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && backgroundRef.current) {
+      const saved = localStorage.getItem("backgroundImage");
+      if (saved) {
+        backgroundRef.current.style.backgroundImage = `url("/images/${saved}")`;
+      }
+    }
+  }, []);
+
   // Deck base card data (loaded from JSON)
   const [deck1Cards, setDeck1Cards] = useState<CardType[]>([]);
   const [deck2Cards, setDeck2Cards] = useState<CardType[]>([]);
@@ -2673,6 +2683,7 @@ export default function Home() {
                       communities={communities}
                       playerResources={playerResources}
                       turnAssist={settings.turnAssist ?? true}
+                      isCreationTurn={isCreationTurn()}
                       individualTraitCards={deck3Cards}
                       communityTraitCards={deck4Cards}
                     />
