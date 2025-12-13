@@ -102,9 +102,9 @@ export default function Home() {
   useEffect(() => {
     if (typeof window !== "undefined" && backgroundRef.current) {
       const saved = localStorage.getItem("backgroundImage");
-      if (saved) {
-        backgroundRef.current.style.backgroundImage = `url("/images/${saved}")`;
-      }
+      const defaultBackground = "background-smoke.png";
+      const backgroundToUse = saved || defaultBackground;
+      backgroundRef.current.style.backgroundImage = `url("/images/${backgroundToUse}")`;
     }
   }, []);
 

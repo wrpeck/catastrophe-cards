@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { Settings } from "@/types/gameState";
 
 const BACKGROUND_OPTIONS = [
+  { value: "background-smoke.png", label: "Smoke" },
   { value: "background.png", label: "Default" },
   { value: "background-tall.png", label: "Tall" },
-  { value: "background-smoke.png", label: "Smoke" },
   { value: "background-old.jpeg", label: "Old" },
 ];
 
@@ -23,9 +23,9 @@ export default function SettingsEditor({
   const [hasChanges, setHasChanges] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("backgroundImage") || "background.png";
+      return localStorage.getItem("backgroundImage") || "background-smoke.png";
     }
-    return "background.png";
+    return "background-smoke.png";
   });
 
   // Sync localSettings when settings prop changes

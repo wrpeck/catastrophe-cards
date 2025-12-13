@@ -51,7 +51,7 @@ body {
 
 /* Background image */
 .app-background {
-  background-image: url("/images/background.png");
+  background-image: url("/images/background-smoke.png");
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
