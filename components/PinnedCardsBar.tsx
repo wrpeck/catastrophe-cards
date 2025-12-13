@@ -54,7 +54,28 @@ export default function PinnedCardsBar({
   communityTraitCards = [],
 }: PinnedCardsBarProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("individual");
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    // Default to collapsed on first visit
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("pinnedCardsCollapsed");
+      return saved === "false" ? false : true; // Default to true (collapsed)
+    }
+    return true; // Default to collapsed
+  });
+
+  // Save collapsed state to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("pinnedCardsCollapsed", String(isCollapsed));
+    }
+  }, [isCollapsed]);
+
+  // Reset to collapsed when a new game starts (pinnedCards becomes empty)
+  useEffect(() => {
+    if (pinnedCards.length === 0) {
+      setIsCollapsed(true);
+    }
+  }, [pinnedCards.length]);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [expandedPosition, setExpandedPosition] = useState<{
     left: number;
@@ -776,40 +797,40 @@ export default function PinnedCardsBar({
           // Expanded view - full content
           <div className="w-full px-4 sm:px-6 lg:px-8 py-2">
             <div className="flex items-center justify-end mb-2 gap-2">
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="text-gray-700 font-medium">
-                    Round: <span className="font-bold">{roundValue}</span>
-                  </span>
-                  <span className="text-red-700 font-medium">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-gray-700 font-medium">
+                  Round: <span className="font-bold">{roundValue}</span>
+                </span>
+                <span className="text-red-700 font-medium">
                   Extinction:{" "}
                   <span className="font-bold">{extinctionValue}</span>
-                  </span>
-                  <span className="text-blue-700 font-medium">
-                    Civilization:{" "}
-                    <span className="font-bold">{civilizationValue}</span>
-                  </span>
-                </div>
-                <button
-                  onClick={() => setIsCollapsed(true)}
+                </span>
+                <span className="text-blue-700 font-medium">
+                  Civilization:{" "}
+                  <span className="font-bold">{civilizationValue}</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setIsCollapsed(true)}
                 className="p-1 rounded hover:bg-[#E8C4B5] transition-colors"
-                  aria-label="Collapse pinned cards"
-                  title="Collapse"
+                aria-label="Collapse pinned cards"
+                title="Collapse"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-gray-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-gray-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
             </div>
 
             {/* Mobile: Tab Toggle */}

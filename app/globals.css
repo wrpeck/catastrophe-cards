@@ -19,10 +19,17 @@
   }
 }
 
+html {
+  background: #474551;
+  overflow-x: hidden;
+}
+
 body {
   background: transparent;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 @keyframes fade-in {
@@ -52,13 +59,14 @@ body {
 /* Background image */
 .app-background {
   background-image: url("/images/background-smoke.png");
-  background-size: cover;
+  background-size: 100% auto;
   background-position: center top;
   background-repeat: no-repeat;
   position: relative;
-  min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
+  background-attachment: scroll;
+  background-color: #474551;
 }
 
 .app-background::before {

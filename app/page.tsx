@@ -2524,10 +2524,11 @@ export default function Home() {
       <GameOutcomeBanner outcome={gameOutcome} />
       <div
         ref={backgroundRef}
-        className="min-h-screen app-background flex flex-col"
+        className="app-background flex flex-col"
+        style={{ minHeight: "200vh" }}
       >
         <div
-          className="flex-1 flex flex-col py-8 pb-64 md:pb-48 relative z-10"
+          className="flex-1 flex flex-col py-8 pb-40 md:pb-28 relative z-10"
           style={gameOutcome ? { paddingTop: "80px" } : {}}
         >
           <div className="w-full">
@@ -2774,6 +2775,8 @@ export default function Home() {
               </DeckTabs>
             </PageBody>
           </div>
+          {/* Extra scrollable space to reveal more background */}
+          <div className="h-32 md:h-48" />
         </div>
       </div>
       <PinnedCardsBar

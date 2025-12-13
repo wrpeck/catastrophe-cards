@@ -5,7 +5,7 @@
     "flavor": "Nobody told you it all ripens at once! You hope people like corn.",
     "effect": "Add 1d6 to your community's resource rolls.",
     "quantity": 5,
-    "traitCost": 10
+    "traitCost": 8
   },
   {
     "id": "deck4-2",
@@ -21,7 +21,7 @@
     "flavor": "Don't let them forget what we lost.",
     "effect": "You may subtract 1d6 from the cost of your first Civilization Point purchased each round.",
     "quantity": 5,
-    "traitCost": 10
+    "traitCost": 12
   },
   {
     "id": "deck4-4",
@@ -29,7 +29,7 @@
     "flavor": "Not sure a bag of bandages and tylenol makes you a doctor, but it's something.",
     "effect": "If you purchase 2 Civilization Points in one round, you get a third for free.",
     "quantity": 5,
-    "traitCost": 10
+    "traitCost": 12
   },
   {
     "id": "deck4-5",
@@ -37,7 +37,7 @@
     "flavor": "Never thought you'd get to lumberjacking in the apocalypse.",
     "effect": "Community maintenance costs are reduced by 1d2 (minimum 1).",
     "quantity": 5,
-    "traitCost": 10
+    "traitCost": 6
   },
   {
     "id": "deck4-6",
@@ -45,7 +45,7 @@
     "flavor": "This is a lot harder than it looks, and it looks hard.",
     "effect": "Community maintenance costs are reduced by 1d2 (minimum 1).",
     "quantity": 5,
-    "traitCost": 10
+    "traitCost": 6
   },
   {
     "id": "deck4-7",
@@ -53,7 +53,7 @@
     "flavor": "Strange. The Militia is somehow less violent than the alternatives.",
     "effect": "If your community disbands, resources are distributed evenly among across members (rounding up).",
     "quantity": 5,
-    "traitCost": 10
+    "traitCost": 5
   },
   {
     "id": "deck4-8",
@@ -61,7 +61,7 @@
     "flavor": "You start to feel human again when you're in this place.",
     "effect": "New members may join your community, and you may invite other communities to join yours. If an event card would cause you to remove a member, instead destroy this card.",
     "quantity": 5,
-    "traitCost": 10
+    "traitCost": 8
   },
   {
     "id": "deck4-9",
