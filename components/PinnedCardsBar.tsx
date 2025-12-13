@@ -262,7 +262,7 @@ export default function PinnedCardsBar({
 
   const renderCardContainer = (
     cards: PinnedCardWithDeck[],
-    scrollRef: React.RefObject<HTMLDivElement>,
+    scrollRef: React.RefObject<HTMLDivElement | null>,
     canScrollLeft: boolean,
     canScrollRight: boolean,
     containerKey: string
@@ -396,7 +396,7 @@ export default function PinnedCardsBar({
                               left: buttonRect.left,
                             });
                             setSelectedTraitCard(traitCard);
-                            setSelectedTraitName(card.isTraitEffect);
+                            setSelectedTraitName(card.isTraitEffect || "");
                             setShowTraitInfobox(true);
                           }
                         }}

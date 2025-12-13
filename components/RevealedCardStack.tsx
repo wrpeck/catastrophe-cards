@@ -388,7 +388,7 @@ export default function RevealedCardStack({
                           left: buttonRect.left,
                         });
                         setSelectedTraitCard(traitCard);
-                        setSelectedTraitName(card.isTraitEffect);
+                        setSelectedTraitName(card.isTraitEffect || "");
                         setShowTraitInfobox(true);
                       }
                     }}

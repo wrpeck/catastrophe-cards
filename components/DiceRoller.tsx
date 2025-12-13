@@ -447,13 +447,10 @@ export default function DiceRoller({
                   Higher
                 </span>
                 <span className="text-lg font-bold text-gray-900 leading-tight">
-                  {displayRollValues || rollValues
-                    ? Math.max(
-                        displayRollValues
-                          ? displayRollValues[0]
-                          : rollValues[0],
-                        displayRollValues ? displayRollValues[1] : rollValues[1]
-                      )
+                  {displayRollValues
+                    ? Math.max(displayRollValues[0], displayRollValues[1])
+                    : rollValues
+                    ? Math.max(rollValues[0], rollValues[1])
                     : "?"}
                 </span>
               </div>
