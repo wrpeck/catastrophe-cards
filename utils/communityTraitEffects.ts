@@ -43,14 +43,18 @@ export function getCommunityMemberTraits(
  * @param cardPlayerAssignments Map of card keys to player names
  * @param pinnedCards All pinned cards
  * @param individualTraitCards All individual trait card definitions
- * @returns The calculated upkeep cost
+ * @param blacksmithReduction Optional reduction from Blacksmith trait roll (default 0)
+ * @param sawmillReduction Optional reduction from Sawmill trait roll (default 0)
+ * @returns The calculated upkeep cost (minimum 1)
  */
 export function calculateCommunityUpkeepCost(
   community: Community,
   communityCostPerMember: number,
   cardPlayerAssignments: Map<string, string>,
   pinnedCards: Array<Card & { deckTitle: string; pinnedId: string }>,
-  individualTraitCards: Card[]
+  individualTraitCards: Card[],
+  blacksmithReduction: number = 0,
+  sawmillReduction: number = 0
 ): number {
   const baseCost = community.memberPlayerNames.length * communityCostPerMember;
 
@@ -78,10 +82,12 @@ export function calculateCommunityUpkeepCost(
   // Each Helpless member increases upkeep by 1 x communityCostPerMember (+1 member for upkeep)
   const helplessIncrease = helplessCount * communityCostPerMember;
 
-  // Calculate final cost (minimum 1 member worth of cost)
+  // Calculate final cost
+  // Apply Blacksmith and Sawmill reductions after other calculations
+  const totalReduction = blacksmithReduction + sawmillReduction;
   const finalCost = Math.max(
-    communityCostPerMember, // Minimum 1 member
-    baseCost - reduction + helplessIncrease
+    1, // Minimum 1 resource (not 1 member worth)
+    baseCost - reduction + helplessIncrease - totalReduction
   );
 
   return finalCost;

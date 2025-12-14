@@ -49,6 +49,8 @@ interface PlayerTrackerProps {
   pinnedCards: PinnedCardWithDeck[];
   cardPlayerAssignments: Map<string, string>;
   communityTraitAssignments: Map<string, string>;
+  blacksmithReductions?: Map<string, number>; // Map of communityId to Blacksmith reduction amount
+  sawmillReductions?: Map<string, number>; // Map of communityId to Sawmill reduction amount
   individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
   communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
   turnAssist?: boolean;
@@ -80,6 +82,8 @@ export default function PlayerTracker({
   pinnedCards,
   cardPlayerAssignments,
   communityTraitAssignments,
+  blacksmithReductions = new Map(),
+  sawmillReductions = new Map(),
   individualTraitCards = [],
   communityTraitCards = [],
   turnAssist = true,
@@ -396,6 +400,8 @@ export default function PlayerTracker({
           pinnedCards={pinnedCards}
           cardPlayerAssignments={cardPlayerAssignments}
           communityTraitAssignments={communityTraitAssignments}
+          blacksmithReductions={blacksmithReductions}
+          sawmillReductions={sawmillReductions}
           individualTraitCards={individualTraitCards}
           communityTraitCards={communityTraitCards}
           turnAssist={turnAssist}

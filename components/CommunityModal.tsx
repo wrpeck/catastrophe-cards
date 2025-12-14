@@ -569,7 +569,9 @@ export default function CommunityModal({
                     communityCostPerMember,
                     cardPlayerAssignments,
                     pinnedCards,
-                    individualTraitCards
+                    individualTraitCards,
+                    0, // No Blacksmith reduction for new communities
+                    0 // No Sawmill reduction for new communities
                   );
                   const upkeepExceedsResources =
                     firstUpkeepCost > totalResources;

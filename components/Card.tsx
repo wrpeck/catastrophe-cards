@@ -180,6 +180,10 @@ export default function Card({
 
   // Determine background color based on type
   const getBackgroundColor = () => {
+    // Wanderer cards get a light purple/lavender background
+    if (deckTitle === "Wanderer") {
+      return "bg-purple-50";
+    }
     if (card.type === "good") {
       return "bg-green-100";
     } else if (card.type === "bad") {

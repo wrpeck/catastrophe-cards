@@ -75,6 +75,15 @@ export default function Home() {
   const [communityTraitAssignments, setCommunityTraitAssignments] = useState<
     Map<string, string>
   >(new Map());
+  const [blacksmithReductions, setBlacksmithReductions] = useState<
+    Map<string, number>
+  >(new Map()); // Map of communityId to reduction amount
+  const [sawmillReductions, setSawmillReductions] = useState<
+    Map<string, number>
+  >(new Map()); // Map of communityId to reduction amount
+  const [schoolhouseReductions, setSchoolhouseReductions] = useState<
+    Map<string, number>
+  >(new Map()); // Map of communityId to reduction amount
   const [missingTurnPlayers, setMissingTurnPlayers] = useState<Set<string>>(
     new Set()
   );
@@ -1617,6 +1626,50 @@ export default function Home() {
   };
 
   const handleDisbandCommunity = (communityId: string) => {
+    // Get the community before deleting it
+    const communityToDisband = communities.find((c) => c.id === communityId);
+
+    // Check if the community has the Militia trait
+    if (communityToDisband) {
+      const hasMilitiaTrait = Array.from(
+        communityTraitAssignments.entries()
+      ).some(([pinnedId, assignedCommunityId]) => {
+        if (assignedCommunityId !== communityId) return false;
+        const pinnedCard = pinnedCards.find(
+          (card) =>
+            card.pinnedId === pinnedId && card.deckTitle === "Community Traits"
+        );
+        return pinnedCard?.displayName === "Militia";
+      });
+
+      // If community has Militia trait, distribute resources to members
+      if (
+        hasMilitiaTrait &&
+        communityToDisband.resources > 0 &&
+        communityToDisband.memberPlayerNames.length > 0
+      ) {
+        const resourcesPerMember = Math.ceil(
+          communityToDisband.resources /
+            communityToDisband.memberPlayerNames.length
+        );
+
+        // Distribute resources to each member in a single state update
+        setPlayerResources((prev) => {
+          const updated = [...prev];
+          communityToDisband.memberPlayerNames.forEach((memberName) => {
+            const playerIndex = updated.findIndex((p) => p.name === memberName);
+            if (playerIndex !== -1) {
+              updated[playerIndex] = {
+                ...updated[playerIndex],
+                resources: updated[playerIndex].resources + resourcesPerMember,
+              };
+            }
+          });
+          return updated;
+        });
+      }
+    }
+
     setCommunities((prev) => prev.filter((c) => c.id !== communityId));
 
     // Find all Community Traits assigned to this community and unpin them
@@ -1665,7 +1718,7 @@ export default function Home() {
 
   // Buy civilization point
   const handleBuyCivilizationPoint = useCallback(() => {
-    const cost = settings.civilizationPointCost ?? 10;
+    const baseCost = settings.civilizationPointCost ?? 10;
 
     if (turnOrder.length === 0 || currentTurnIndex >= turnOrder.length) {
       return;
@@ -1676,21 +1729,30 @@ export default function Home() {
     // Check if it's a community turn
     const community = communities.find((c) => c.id === turnId);
     if (community) {
-      // It's a community turn
+      // It's a community turn - apply Schoolhouse reduction
+      const schoolhouseReduction = schoolhouseReductions.get(community.id) ?? 0;
+      const cost = Math.max(1, baseCost - schoolhouseReduction);
+
       if (community.resources >= cost) {
         handleCommunityResourceChange(community.id, community.resources - cost);
         handleCivilizationIncrement();
+        // Reset Schoolhouse reduction after purchase
+        setSchoolhouseReductions((prev) => {
+          const updated = new Map(prev);
+          updated.delete(community.id);
+          return updated;
+        });
       }
     } else if (turnId !== "creation") {
-      // It's a player turn
+      // It's a player turn - no Schoolhouse reduction
       const playerIndex = playerResources.findIndex((p) => p.name === turnId);
       if (
         playerIndex !== -1 &&
-        playerResources[playerIndex].resources >= cost
+        playerResources[playerIndex].resources >= baseCost
       ) {
         handlePlayerResourceChange(
           playerIndex,
-          playerResources[playerIndex].resources - cost
+          playerResources[playerIndex].resources - baseCost
         );
         handleCivilizationIncrement();
       }
@@ -1701,6 +1763,7 @@ export default function Home() {
     currentTurnIndex,
     communities,
     playerResources,
+    schoolhouseReductions,
     handleCommunityResourceChange,
     handlePlayerResourceChange,
     handleCivilizationIncrement,
@@ -1713,7 +1776,7 @@ export default function Home() {
       return true;
     }
 
-    const cost = settings.civilizationPointCost ?? 10;
+    const baseCost = settings.civilizationPointCost ?? 10;
 
     if (turnOrder.length === 0 || currentTurnIndex >= turnOrder.length) {
       return false;
@@ -1728,13 +1791,16 @@ export default function Home() {
     // Check if it's a community turn
     const community = communities.find((c) => c.id === turnId);
     if (community) {
+      // Apply Schoolhouse reduction
+      const schoolhouseReduction = schoolhouseReductions.get(community.id) ?? 0;
+      const cost = Math.max(1, baseCost - schoolhouseReduction);
       return community.resources >= cost;
     }
 
     // It's a player turn
     const player = playerResources.find((p) => p.name === turnId);
     if (player) {
-      return player.resources >= cost;
+      return player.resources >= baseCost;
     }
 
     return false;
@@ -1745,6 +1811,7 @@ export default function Home() {
     currentTurnIndex,
     communities,
     playerResources,
+    schoolhouseReductions,
   ]);
 
   // Buy extinction point (only for communities with Research Lab trait)
@@ -2842,11 +2909,51 @@ export default function Home() {
                         communities={communities}
                         pinnedCards={pinnedCards}
                         cardPlayerAssignments={cardPlayerAssignments}
+                        communityTraitAssignments={communityTraitAssignments}
                         onCommunityResourceChange={
                           handleCommunityResourceChange
                         }
                         playerResources={playerResources}
                         onPlayerResourceChange={handlePlayerResourceChange}
+                        onBlacksmithReductionChange={(
+                          communityId,
+                          reduction
+                        ) => {
+                          setBlacksmithReductions((prev) => {
+                            const updated = new Map(prev);
+                            if (reduction === null) {
+                              updated.delete(communityId);
+                            } else {
+                              updated.set(communityId, reduction);
+                            }
+                            return updated;
+                          });
+                        }}
+                        onSawmillReductionChange={(communityId, reduction) => {
+                          setSawmillReductions((prev) => {
+                            const updated = new Map(prev);
+                            if (reduction === null) {
+                              updated.delete(communityId);
+                            } else {
+                              updated.set(communityId, reduction);
+                            }
+                            return updated;
+                          });
+                        }}
+                        onSchoolhouseReductionChange={(
+                          communityId,
+                          reduction
+                        ) => {
+                          setSchoolhouseReductions((prev) => {
+                            const updated = new Map(prev);
+                            if (reduction === null) {
+                              updated.delete(communityId);
+                            } else {
+                              updated.set(communityId, reduction);
+                            }
+                            return updated;
+                          });
+                        }}
                       />
                       {!isLoadingSettings && (
                         <PlayerTracker
@@ -2881,6 +2988,8 @@ export default function Home() {
                           pinnedCards={pinnedCards}
                           cardPlayerAssignments={cardPlayerAssignments}
                           communityTraitAssignments={communityTraitAssignments}
+                          blacksmithReductions={blacksmithReductions}
+                          sawmillReductions={sawmillReductions}
                           individualTraitCards={deck3Cards}
                           communityTraitCards={deck4Cards}
                           turnAssist={settings.turnAssist ?? true}
@@ -2920,9 +3029,29 @@ export default function Home() {
                           onCivilizationDecrement={handleCivilizationDecrement}
                           onCivilizationReset={handleCivilizationReset}
                           onBuyCivilizationPoint={handleBuyCivilizationPoint}
-                          civilizationPointCost={
-                            settings.civilizationPointCost ?? 10
-                          }
+                          civilizationPointCost={(() => {
+                            const baseCost =
+                              settings.civilizationPointCost ?? 10;
+                            if (
+                              turnOrder.length === 0 ||
+                              currentTurnIndex >= turnOrder.length
+                            ) {
+                              return baseCost;
+                            }
+                            const turnId = turnOrder[currentTurnIndex];
+                            const community = communities.find(
+                              (c) => c.id === turnId
+                            );
+                            if (community) {
+                              const schoolhouseReduction =
+                                schoolhouseReductions.get(community.id) ?? 0;
+                              return Math.max(
+                                1,
+                                baseCost - schoolhouseReduction
+                              );
+                            }
+                            return baseCost;
+                          })()}
                           canBuyCivilizationPoint={canBuyCivilizationPoint()}
                           gameState={buildGameState()}
                           onStateRestored={restoreGameState}
@@ -3153,7 +3282,23 @@ export default function Home() {
               onCivilizationDecrement={handleCivilizationDecrement}
               onCivilizationReset={handleCivilizationReset}
               onBuyCivilizationPoint={handleBuyCivilizationPoint}
-              civilizationPointCost={settings.civilizationPointCost ?? 10}
+              civilizationPointCost={(() => {
+                const baseCost = settings.civilizationPointCost ?? 10;
+                if (
+                  turnOrder.length === 0 ||
+                  currentTurnIndex >= turnOrder.length
+                ) {
+                  return baseCost;
+                }
+                const turnId = turnOrder[currentTurnIndex];
+                const community = communities.find((c) => c.id === turnId);
+                if (community) {
+                  const schoolhouseReduction =
+                    schoolhouseReductions.get(community.id) ?? 0;
+                  return Math.max(1, baseCost - schoolhouseReduction);
+                }
+                return baseCost;
+              })()}
               canBuyCivilizationPoint={canBuyCivilizationPoint()}
               gameState={buildGameState()}
               onStateRestored={restoreGameState}

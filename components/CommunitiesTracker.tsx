@@ -45,6 +45,8 @@ interface CommunitiesTrackerProps {
   pinnedCards: PinnedCardWithDeck[];
   cardPlayerAssignments: Map<string, string>;
   communityTraitAssignments: Map<string, string>;
+  blacksmithReductions?: Map<string, number>; // Map of communityId to Blacksmith reduction amount
+  sawmillReductions?: Map<string, number>; // Map of communityId to Sawmill reduction amount
   individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
   communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
   turnAssist?: boolean;
@@ -66,6 +68,8 @@ export default function CommunitiesTracker({
   pinnedCards,
   cardPlayerAssignments,
   communityTraitAssignments,
+  blacksmithReductions = new Map(),
+  sawmillReductions = new Map(),
   individualTraitCards = [],
   communityTraitCards = [],
   turnAssist = true,
@@ -117,12 +121,16 @@ export default function CommunitiesTracker({
   const handleUpkeep = (communityId: string) => {
     const community = communities.find((c) => c.id === communityId);
     if (community) {
+      const blacksmithReduction = blacksmithReductions.get(communityId) ?? 0;
+      const sawmillReduction = sawmillReductions.get(communityId) ?? 0;
       const upkeepCost = calculateCommunityUpkeepCost(
         community,
         communityCostPerMember,
         cardPlayerAssignments,
         pinnedCards,
-        individualTraitCards
+        individualTraitCards,
+        blacksmithReduction,
+        sawmillReduction
       );
       const newResources = Math.max(0, community.resources - upkeepCost);
       onResourceChange(communityId, newResources);
@@ -392,12 +400,18 @@ export default function CommunitiesTracker({
                       </div>
                     </div>
                     {(() => {
+                      const blacksmithReduction =
+                        blacksmithReductions.get(community.id) ?? 0;
+                      const sawmillReduction =
+                        sawmillReductions.get(community.id) ?? 0;
                       const upkeepCost = calculateCommunityUpkeepCost(
                         community,
                         communityCostPerMember,
                         cardPlayerAssignments,
                         pinnedCards,
-                        individualTraitCards
+                        individualTraitCards,
+                        blacksmithReduction,
+                        sawmillReduction
                       );
                       const wouldGoBelowZero =
                         community.resources - upkeepCost < 0;

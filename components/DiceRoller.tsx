@@ -14,12 +14,25 @@ interface DiceRollerProps {
   communities: Community[];
   pinnedCards?: PinnedCardWithDeck[];
   cardPlayerAssignments?: Map<string, string>;
+  communityTraitAssignments?: Map<string, string>;
   onCommunityResourceChange?: (communityId: string, newValue: number) => void;
   playerResources?: PlayerResource[];
   onPlayerResourceChange?: (playerIndex: number, newValue: number) => void;
+  onBlacksmithReductionChange?: (
+    communityId: string,
+    reduction: number | null
+  ) => void;
+  onSawmillReductionChange?: (
+    communityId: string,
+    reduction: number | null
+  ) => void;
+  onSchoolhouseReductionChange?: (
+    communityId: string,
+    reduction: number | null
+  ) => void;
 }
 
-type DiceMode = "resource" | "d6";
+type DiceMode = "resource" | "d6" | "special";
 
 export default function DiceRoller({
   currentTurnIndex,
@@ -27,9 +40,13 @@ export default function DiceRoller({
   communities,
   pinnedCards = [],
   cardPlayerAssignments = new Map(),
+  communityTraitAssignments = new Map(),
   onCommunityResourceChange,
   playerResources = [],
   onPlayerResourceChange,
+  onBlacksmithReductionChange,
+  onSawmillReductionChange,
+  onSchoolhouseReductionChange,
 }: DiceRollerProps) {
   const [mode, setMode] = useState<DiceMode>("resource");
 
@@ -59,6 +76,32 @@ export default function DiceRoller({
   );
   const [isRerolling, setIsRerolling] = useState(false);
   const [lastD6RollTurn, setLastD6RollTurn] = useState<string | null>(null);
+
+  // Special roll state (for Blacksmith, Sawmill, etc.)
+  const [blacksmithRoll, setBlacksmithRoll] = useState<number | null>(null);
+  const [blacksmithDisplayRoll, setBlacksmithDisplayRoll] = useState<
+    number | null
+  >(null);
+  const [isRollingBlacksmith, setIsRollingBlacksmith] = useState(false);
+  const [lastBlacksmithRollTurn, setLastBlacksmithRollTurn] = useState<
+    string | null
+  >(null);
+  const [sawmillRoll, setSawmillRoll] = useState<number | null>(null);
+  const [sawmillDisplayRoll, setSawmillDisplayRoll] = useState<number | null>(
+    null
+  );
+  const [isRollingSawmill, setIsRollingSawmill] = useState(false);
+  const [lastSawmillRollTurn, setLastSawmillRollTurn] = useState<string | null>(
+    null
+  );
+  const [schoolhouseRoll, setSchoolhouseRoll] = useState<number | null>(null);
+  const [schoolhouseDisplayRoll, setSchoolhouseDisplayRoll] = useState<
+    number | null
+  >(null);
+  const [isRollingSchoolhouse, setIsRollingSchoolhouse] = useState(false);
+  const [lastSchoolhouseRollTurn, setLastSchoolhouseRollTurn] = useState<
+    string | null
+  >(null);
 
   // Helper function to get current turn's display name
   const getCurrentTurnName = (): string => {
@@ -193,6 +236,51 @@ export default function DiceRoller({
       setRollValues(null);
       setDisplayRollValues(null);
     }
+    // Reset Blacksmith roll when turn changes
+    if (lastBlacksmithRollTurn && lastBlacksmithRollTurn !== currentTurnName) {
+      // Clear Blacksmith reduction for previous community before resetting state
+      if (onBlacksmithReductionChange) {
+        const previousCommunity = communities.find(
+          (c) => c.name === lastBlacksmithRollTurn
+        );
+        if (previousCommunity) {
+          onBlacksmithReductionChange(previousCommunity.id, null);
+        }
+      }
+      setBlacksmithRoll(null);
+      setBlacksmithDisplayRoll(null);
+    }
+    // Reset Sawmill roll when turn changes
+    if (lastSawmillRollTurn && lastSawmillRollTurn !== currentTurnName) {
+      // Clear Sawmill reduction for previous community before resetting state
+      if (onSawmillReductionChange) {
+        const previousCommunity = communities.find(
+          (c) => c.name === lastSawmillRollTurn
+        );
+        if (previousCommunity) {
+          onSawmillReductionChange(previousCommunity.id, null);
+        }
+      }
+      setSawmillRoll(null);
+      setSawmillDisplayRoll(null);
+    }
+    // Reset Schoolhouse roll when turn changes
+    if (
+      lastSchoolhouseRollTurn &&
+      lastSchoolhouseRollTurn !== currentTurnName
+    ) {
+      // Clear Schoolhouse reduction for previous community before resetting state
+      if (onSchoolhouseReductionChange) {
+        const previousCommunity = communities.find(
+          (c) => c.name === lastSchoolhouseRollTurn
+        );
+        if (previousCommunity) {
+          onSchoolhouseReductionChange(previousCommunity.id, null);
+        }
+      }
+      setSchoolhouseRoll(null);
+      setSchoolhouseDisplayRoll(null);
+    }
   }, [currentTurnIndex, turnOrder, communities]);
 
   // Calculate and set dice count when a community's turn begins
@@ -219,10 +307,38 @@ export default function DiceRoller({
         // Each Helpless member adds +2 dice
         diceCount += helplessCount * 2;
 
+        // Check for Agriculture trait: +1 die
+        const hasAgriculture = hasAgricultureTrait();
+        if (hasAgriculture) {
+          diceCount += 1;
+        }
+
         // Set the dice count (clamp between 1 and 20)
         setNumDice(Math.max(1, Math.min(20, diceCount)));
         // Track this community turn
         setLastCommunityTurnId(currentCommunity.id);
+      } else {
+        // Same community turn, but traits might have changed - recalculate
+        let diceCount = currentCommunity.memberPlayerNames.length;
+
+        const memberTraits = getCommunityMemberTraits(
+          currentCommunity,
+          cardPlayerAssignments,
+          pinnedCards,
+          []
+        );
+        const helplessCount = memberTraits.filter(
+          (trait) => trait.displayName === "Helpless"
+        ).length;
+
+        diceCount += helplessCount * 2;
+
+        const hasAgriculture = hasAgricultureTrait();
+        if (hasAgriculture) {
+          diceCount += 1;
+        }
+
+        setNumDice(Math.max(1, Math.min(20, diceCount)));
       }
     } else {
       // Not a community turn, reset tracking
@@ -237,6 +353,7 @@ export default function DiceRoller({
     lastCommunityTurnId,
     cardPlayerAssignments,
     pinnedCards,
+    communityTraitAssignments,
   ]);
 
   // Possible values: 0, 1, or 2
@@ -386,6 +503,9 @@ export default function DiceRoller({
     setHasRerolledOnes(false); // Reset reroll flag on new roll
     setRerollingIndices(new Set()); // Clear rerolling indices
 
+    // numDice already includes Agriculture bonus from useEffect, so use it directly
+    const totalDice = numDice;
+
     // Animate rolling by rapidly changing displayed values
     const rollDuration = 1000; // 1 second
     const updateInterval = 50; // Update every 50ms
@@ -395,7 +515,7 @@ export default function DiceRoller({
     const rollInterval = setInterval(() => {
       // Show random values during animation
       const randomResults = Array.from(
-        { length: numDice },
+        { length: totalDice },
         () => Math.floor(Math.random() * 6) + 1
       );
       setD6DisplayResults(randomResults);
@@ -405,7 +525,7 @@ export default function DiceRoller({
         clearInterval(rollInterval);
         // Final roll
         const finalResults = Array.from(
-          { length: numDice },
+          { length: totalDice },
           () => Math.floor(Math.random() * 6) + 1
         );
         setD6Results(finalResults);
@@ -516,6 +636,245 @@ export default function DiceRoller({
   const d6TotalWithBonus =
     d6Total !== null ? d6Total + cutthroatBonus + survivalistBonus : null;
 
+  // Check if current community has Blacksmith trait
+  const hasBlacksmithTrait = (): boolean => {
+    if (!currentCommunity) return false;
+
+    return Array.from(communityTraitAssignments.entries()).some(
+      ([pinnedId, assignedCommunityId]) => {
+        if (assignedCommunityId !== currentCommunity.id) return false;
+        const pinnedCard = pinnedCards.find(
+          (card) =>
+            card.pinnedId === pinnedId && card.deckTitle === "Community Traits"
+        );
+        return pinnedCard?.displayName === "Blacksmith";
+      }
+    );
+  };
+
+  // Check if current community has Sawmill trait
+  const hasSawmillTrait = (): boolean => {
+    if (!currentCommunity) return false;
+
+    return Array.from(communityTraitAssignments.entries()).some(
+      ([pinnedId, assignedCommunityId]) => {
+        if (assignedCommunityId !== currentCommunity.id) return false;
+        const pinnedCard = pinnedCards.find(
+          (card) =>
+            card.pinnedId === pinnedId && card.deckTitle === "Community Traits"
+        );
+        return pinnedCard?.displayName === "Sawmill";
+      }
+    );
+  };
+
+  // Check if current community has Agriculture trait
+  const hasAgricultureTrait = (): boolean => {
+    if (!currentCommunity) return false;
+
+    return Array.from(communityTraitAssignments.entries()).some(
+      ([pinnedId, assignedCommunityId]) => {
+        if (assignedCommunityId !== currentCommunity.id) return false;
+        const pinnedCard = pinnedCards.find(
+          (card) =>
+            card.pinnedId === pinnedId && card.deckTitle === "Community Traits"
+        );
+        return pinnedCard?.displayName === "Agriculture";
+      }
+    );
+  };
+
+  // Check if current community has Schoolhouse trait
+  const hasSchoolhouseTrait = (): boolean => {
+    if (!currentCommunity) return false;
+
+    return Array.from(communityTraitAssignments.entries()).some(
+      ([pinnedId, assignedCommunityId]) => {
+        if (assignedCommunityId !== currentCommunity.id) return false;
+        const pinnedCard = pinnedCards.find(
+          (card) =>
+            card.pinnedId === pinnedId && card.deckTitle === "Community Traits"
+        );
+        return pinnedCard?.displayName === "Schoolhouse";
+      }
+    );
+  };
+
+  // Roll Blacksmith die (0-2, then add +1)
+  const rollBlacksmith = () => {
+    if (isRollingBlacksmith || !currentCommunity) return;
+
+    setIsRollingBlacksmith(true);
+    setBlacksmithDisplayRoll(null);
+
+    // Animate rolling by rapidly changing displayed value
+    const rollDuration = 1000; // 1 second
+    const updateInterval = 50; // Update every 50ms
+    const updates = rollDuration / updateInterval;
+    let currentUpdate = 0;
+
+    const rollInterval = setInterval(() => {
+      // Show random value between 0-2 during animation
+      const randomValue = Math.floor(Math.random() * 3); // 0, 1, or 2
+      setBlacksmithDisplayRoll(randomValue);
+      currentUpdate++;
+
+      if (currentUpdate >= updates) {
+        clearInterval(rollInterval);
+        // Final roll
+        const finalRoll = Math.floor(Math.random() * 3); // 0, 1, or 2
+        const finalValue = finalRoll + 1; // Add +1 (result is 1, 2, or 3)
+        setBlacksmithRoll(finalValue);
+        setBlacksmithDisplayRoll(finalRoll); // Show the die roll (before +1)
+        setLastBlacksmithRollTurn(getCurrentTurnName());
+
+        // Notify parent of the reduction amount
+        if (onBlacksmithReductionChange) {
+          onBlacksmithReductionChange(currentCommunity.id, finalValue);
+        }
+
+        setIsRollingBlacksmith(false);
+      }
+    }, updateInterval);
+  };
+
+  // Roll Sawmill die (0-2, then add +1)
+  const rollSawmill = () => {
+    if (isRollingSawmill || !currentCommunity) return;
+
+    setIsRollingSawmill(true);
+    setSawmillDisplayRoll(null);
+
+    // Animate rolling by rapidly changing displayed value
+    const rollDuration = 1000; // 1 second
+    const updateInterval = 50; // Update every 50ms
+    const updates = rollDuration / updateInterval;
+    let currentUpdate = 0;
+
+    const rollInterval = setInterval(() => {
+      // Show random value between 0-2 during animation
+      const randomValue = Math.floor(Math.random() * 3); // 0, 1, or 2
+      setSawmillDisplayRoll(randomValue);
+      currentUpdate++;
+
+      if (currentUpdate >= updates) {
+        clearInterval(rollInterval);
+        // Final roll
+        const finalRoll = Math.floor(Math.random() * 3); // 0, 1, or 2
+        const finalValue = finalRoll + 1; // Add +1 (result is 1, 2, or 3)
+        setSawmillRoll(finalValue);
+        setSawmillDisplayRoll(finalRoll); // Show the die roll (before +1)
+        setLastSawmillRollTurn(getCurrentTurnName());
+
+        // Notify parent of the reduction amount
+        if (onSawmillReductionChange) {
+          onSawmillReductionChange(currentCommunity.id, finalValue);
+        }
+
+        setIsRollingSawmill(false);
+      }
+    }, updateInterval);
+  };
+
+  // Roll all special dice together
+  const rollSpecialDice = () => {
+    if (
+      !currentCommunity ||
+      isRollingBlacksmith ||
+      isRollingSawmill ||
+      isRollingSchoolhouse
+    )
+      return;
+
+    const hasBlacksmith = hasBlacksmithTrait();
+    const hasSawmill = hasSawmillTrait();
+    const hasSchoolhouse = hasSchoolhouseTrait();
+
+    if (!hasBlacksmith && !hasSawmill && !hasSchoolhouse) return;
+
+    // Set rolling states
+    if (hasBlacksmith) {
+      setIsRollingBlacksmith(true);
+      setBlacksmithDisplayRoll(null);
+    }
+    if (hasSawmill) {
+      setIsRollingSawmill(true);
+      setSawmillDisplayRoll(null);
+    }
+    if (hasSchoolhouse) {
+      setIsRollingSchoolhouse(true);
+      setSchoolhouseDisplayRoll(null);
+    }
+
+    // Animate rolling by rapidly changing displayed values
+    const rollDuration = 1000; // 1 second
+    const updateInterval = 50; // Update every 50ms
+    const updates = rollDuration / updateInterval;
+    let currentUpdate = 0;
+
+    const rollInterval = setInterval(() => {
+      // Show random values during animation
+      if (hasBlacksmith) {
+        const randomValue = Math.floor(Math.random() * 3); // 0, 1, or 2
+        setBlacksmithDisplayRoll(randomValue);
+      }
+      if (hasSawmill) {
+        const randomValue = Math.floor(Math.random() * 3); // 0, 1, or 2
+        setSawmillDisplayRoll(randomValue);
+      }
+      if (hasSchoolhouse) {
+        const randomValue = Math.floor(Math.random() * 6) + 1; // 1-6 for d6
+        setSchoolhouseDisplayRoll(randomValue);
+      }
+      currentUpdate++;
+
+      if (currentUpdate >= updates) {
+        clearInterval(rollInterval);
+        const currentTurnName = getCurrentTurnName();
+
+        // Final rolls
+        if (hasBlacksmith) {
+          const finalRoll = Math.floor(Math.random() * 3); // 0, 1, or 2
+          const finalValue = finalRoll + 1; // Add +1 (result is 1, 2, or 3)
+          setBlacksmithRoll(finalValue);
+          setBlacksmithDisplayRoll(finalRoll);
+          setLastBlacksmithRollTurn(currentTurnName);
+          if (onBlacksmithReductionChange) {
+            onBlacksmithReductionChange(currentCommunity.id, finalValue);
+          }
+          setIsRollingBlacksmith(false);
+        }
+
+        if (hasSawmill) {
+          const finalRoll = Math.floor(Math.random() * 3); // 0, 1, or 2
+          const finalValue = finalRoll + 1; // Add +1 (result is 1, 2, or 3)
+          setSawmillRoll(finalValue);
+          setSawmillDisplayRoll(finalRoll);
+          setLastSawmillRollTurn(currentTurnName);
+          if (onSawmillReductionChange) {
+            onSawmillReductionChange(currentCommunity.id, finalValue);
+          }
+          setIsRollingSawmill(false);
+        }
+
+        if (hasSchoolhouse) {
+          const finalValue = Math.floor(Math.random() * 6) + 1; // 1-6
+          setSchoolhouseRoll(finalValue);
+          setSchoolhouseDisplayRoll(finalValue);
+          setLastSchoolhouseRollTurn(currentTurnName);
+          if (onSchoolhouseReductionChange) {
+            onSchoolhouseReductionChange(currentCommunity.id, finalValue);
+          }
+          setIsRollingSchoolhouse(false);
+        }
+      }
+    }, updateInterval);
+  };
+
+  const isRollingSpecial =
+    isRollingBlacksmith || isRollingSawmill || isRollingSchoolhouse;
+  const totalSpecialReduction = (blacksmithRoll ?? 0) + (sawmillRoll ?? 0);
+
   // Add D6 total to community resources
   const handleAddToCommunity = () => {
     if (!d6TotalWithBonus || !onCommunityResourceChange) return;
@@ -604,6 +963,16 @@ export default function DiceRoller({
           }`}
         >
           D6 Roll
+        </button>
+        <button
+          onClick={() => setMode("special")}
+          className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 ${
+            mode === "special"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Special
         </button>
       </div>
 
@@ -752,7 +1121,7 @@ export default function DiceRoller({
               </button>
             )}
         </div>
-      ) : (
+      ) : mode === "d6" ? (
         <div className="flex flex-col items-center gap-4">
           {/* Number of Dice Selector */}
           <div className="w-full">
@@ -786,6 +1155,7 @@ export default function DiceRoller({
                 ).length;
                 const baseMembers = currentCommunity.memberPlayerNames.length;
                 const hasHelpless = helplessCount > 0;
+                const hasAgriculture = hasAgricultureTrait();
 
                 return (
                   <p className="text-xs text-gray-500 mt-1">
@@ -795,6 +1165,9 @@ export default function DiceRoller({
                         {" "}
                         + {helplessCount * 2} (Helpless)
                       </span>
+                    )}
+                    {hasAgriculture && (
+                      <span className="text-green-600"> + 1 (Agriculture)</span>
                     )}
                   </p>
                 );
@@ -826,6 +1199,17 @@ export default function DiceRoller({
                     <span className="text-sm font-semibold text-gray-900">
                       {d6Total}
                     </span>
+                    {hasAgricultureTrait() &&
+                      d6Total !== null &&
+                      currentD6Display &&
+                      numDice !== null && (
+                        <>
+                          {" "}
+                          <span className="text-xs text-gray-500">
+                            ({numDice - 1} base + 1 Agriculture)
+                          </span>
+                        </>
+                      )}
                     {cutthroatBonus > 0 && (
                       <>
                         {" "}
@@ -916,7 +1300,208 @@ export default function DiceRoller({
             </div>
           )}
         </div>
-      )}
+      ) : mode === "special" ? (
+        <>
+          {/* Special Roll Section */}
+          <div className="flex flex-col items-center gap-4">
+            {!currentCommunity ? (
+              <p className="text-sm text-gray-500">
+                Special dice rolls are only available during community turns.
+              </p>
+            ) : (
+              <>
+                {/* Special Dice Section */}
+                {(hasBlacksmithTrait() ||
+                  hasSawmillTrait() ||
+                  hasSchoolhouseTrait()) && (
+                  <div className="w-full space-y-4">
+                    {/* Dice Displays */}
+                    <div className="flex flex-col gap-6">
+                      {/* Blacksmith Dice */}
+                      {hasBlacksmithTrait() && (
+                        <div className="flex flex-col items-center gap-2">
+                          <h4 className="text-sm font-semibold text-gray-900">
+                            Blacksmith
+                          </h4>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-12 h-12 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 flex items-center justify-center text-xl font-bold text-gray-800 transition-all duration-75 ${
+                                isRollingBlacksmith
+                                  ? "animate-spin shadow-lg"
+                                  : "shadow-md"
+                              }`}
+                            >
+                              {blacksmithDisplayRoll !== null ? (
+                                <span
+                                  className={
+                                    isRollingBlacksmith ? "opacity-70" : ""
+                                  }
+                                >
+                                  {blacksmithDisplayRoll}
+                                </span>
+                              ) : blacksmithRoll !== null ? (
+                                blacksmithRoll - 1
+                              ) : (
+                                <span className="text-gray-400">?</span>
+                              )}
+                            </div>
+                            <div className="text-base font-bold text-gray-600">
+                              +1
+                            </div>
+                            <div className="text-base font-bold text-gray-600">
+                              =
+                            </div>
+                            <div
+                              className={`w-12 h-12 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-blue-400 flex items-center justify-center text-xl font-bold text-gray-900 shadow-md ${
+                                isRollingBlacksmith ? "opacity-70" : ""
+                              }`}
+                            >
+                              {blacksmithRoll !== null ? blacksmithRoll : "?"}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sawmill Dice */}
+                      {hasSawmillTrait() && (
+                        <div className="flex flex-col items-center gap-2">
+                          <h4 className="text-sm font-semibold text-gray-900">
+                            Sawmill
+                          </h4>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-12 h-12 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 flex items-center justify-center text-xl font-bold text-gray-800 transition-all duration-75 ${
+                                isRollingSawmill
+                                  ? "animate-spin shadow-lg"
+                                  : "shadow-md"
+                              }`}
+                            >
+                              {sawmillDisplayRoll !== null ? (
+                                <span
+                                  className={
+                                    isRollingSawmill ? "opacity-70" : ""
+                                  }
+                                >
+                                  {sawmillDisplayRoll}
+                                </span>
+                              ) : sawmillRoll !== null ? (
+                                sawmillRoll - 1
+                              ) : (
+                                <span className="text-gray-400">?</span>
+                              )}
+                            </div>
+                            <div className="text-base font-bold text-gray-600">
+                              +1
+                            </div>
+                            <div className="text-base font-bold text-gray-600">
+                              =
+                            </div>
+                            <div
+                              className={`w-12 h-12 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-blue-400 flex items-center justify-center text-xl font-bold text-gray-900 shadow-md ${
+                                isRollingSawmill ? "opacity-70" : ""
+                              }`}
+                            >
+                              {sawmillRoll !== null ? sawmillRoll : "?"}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Schoolhouse Dice */}
+                      {hasSchoolhouseTrait() && (
+                        <div className="flex flex-col items-center gap-2">
+                          <h4 className="text-sm font-semibold text-gray-900">
+                            Schoolhouse
+                          </h4>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-12 h-12 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 flex items-center justify-center text-xl font-bold text-gray-800 transition-all duration-75 ${
+                                isRollingSchoolhouse
+                                  ? "animate-spin shadow-lg"
+                                  : "shadow-md"
+                              }`}
+                            >
+                              {schoolhouseDisplayRoll !== null ? (
+                                <span
+                                  className={
+                                    isRollingSchoolhouse ? "opacity-70" : ""
+                                  }
+                                >
+                                  {schoolhouseDisplayRoll}
+                                </span>
+                              ) : schoolhouseRoll !== null ? (
+                                schoolhouseRoll
+                              ) : (
+                                <span className="text-gray-400">?</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Combined Roll Button */}
+                    <button
+                      onClick={rollSpecialDice}
+                      disabled={isRollingSpecial}
+                      className={`w-full px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                        isRollingSpecial
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-md hover:shadow-lg"
+                      }`}
+                    >
+                      {isRollingSpecial ? "Rolling..." : "Roll Special Dice"}
+                    </button>
+
+                    {/* Combined Result Display */}
+                    {(totalSpecialReduction > 0 || schoolhouseRoll !== null) &&
+                      !isRollingSpecial && (
+                        <div className="text-center space-y-1">
+                          {totalSpecialReduction > 0 && (
+                            <p className="text-sm text-gray-600">
+                              Total upkeep reduction:{" "}
+                              <span className="font-semibold text-green-600">
+                                -{totalSpecialReduction}
+                              </span>
+                            </p>
+                          )}
+                          {schoolhouseRoll !== null && (
+                            <p className="text-sm text-gray-600">
+                              Civilization Point cost reduction:{" "}
+                              <span className="font-semibold text-green-600">
+                                -{schoolhouseRoll}
+                              </span>
+                            </p>
+                          )}
+                          {(lastBlacksmithRollTurn ||
+                            lastSawmillRollTurn ||
+                            lastSchoolhouseRollTurn) && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              (
+                              {lastBlacksmithRollTurn ||
+                                lastSawmillRollTurn ||
+                                lastSchoolhouseRollTurn}
+                              )
+                            </p>
+                          )}
+                        </div>
+                      )}
+                  </div>
+                )}
+
+                {/* No special traits message */}
+                {!hasBlacksmithTrait() &&
+                  !hasSawmillTrait() &&
+                  !hasSchoolhouseTrait() && (
+                    <p className="text-sm text-gray-500">
+                      This community has no special dice rolls available.
+                    </p>
+                  )}
+              </>
+            )}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

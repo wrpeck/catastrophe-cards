@@ -103,6 +103,7 @@ export default function DrawDeck({
         <div className="mt-4 animate-fade-in flex flex-col items-center gap-2">
           <Card
             card={drawnCard}
+            deckTitle={title}
             individualTraitCards={individualTraitCards}
             communityTraitCards={communityTraitCards}
           />
