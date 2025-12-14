@@ -54,20 +54,19 @@ export default function PinnedCardsBar({
   communityTraitCards = [],
 }: PinnedCardsBarProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("individual");
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    // Default to collapsed on first visit
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("pinnedCardsCollapsed");
-      return saved === "false" ? false : true; // Default to true (collapsed)
+  const [isCollapsed, setIsCollapsed] = useState(true); // Default to collapsed (same on server and client)
+
+  // Load collapsed state from localStorage on mount (after hydration)
+  useEffect(() => {
+    const saved = localStorage.getItem("pinnedCardsCollapsed");
+    if (saved === "false") {
+      setIsCollapsed(false);
     }
-    return true; // Default to collapsed
-  });
+  }, []);
 
   // Save collapsed state to localStorage when it changes
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("pinnedCardsCollapsed", String(isCollapsed));
-    }
+    localStorage.setItem("pinnedCardsCollapsed", String(isCollapsed));
   }, [isCollapsed]);
 
   // Reset to collapsed when a new game starts (pinnedCards becomes empty)

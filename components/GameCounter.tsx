@@ -9,6 +9,12 @@ interface GameCounterProps {
   onDecrement: () => void;
   onReset: () => void;
   animate?: boolean;
+  onBuy?: () => void;
+  buyCost?: number;
+  canBuy?: boolean;
+  onCompromise?: () => void;
+  canCompromise?: boolean;
+  compromiseValue?: number;
 }
 
 export default function GameCounter({
@@ -20,6 +26,12 @@ export default function GameCounter({
   onDecrement,
   onReset,
   animate = false,
+  onBuy,
+  buyCost,
+  canBuy,
+  onCompromise,
+  canCompromise,
+  compromiseValue,
 }: GameCounterProps) {
   const colorClasses = {
     red: {
@@ -130,38 +142,103 @@ export default function GameCounter({
       </div>
 
       {/* Controls */}
-      <div className="flex gap-2">
-        <button
-          onClick={onDecrement}
-          disabled={clampedValue <= 0}
-          className={`flex-1 px-3 py-2 rounded-lg font-medium text-white transition-all duration-200 touch-manipulation ${
-            clampedValue <= 0
-              ? "bg-gray-300 cursor-not-allowed"
-              : `${colors.button} active:scale-95`
-          }`}
-          style={{ touchAction: "manipulation" }}
-        >
-          −
-        </button>
-        <button
-          onClick={onReset}
-          className="px-4 py-2 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95 transition-all duration-200 touch-manipulation"
-          style={{ touchAction: "manipulation" }}
-        >
-          Reset
-        </button>
-        <button
-          onClick={onIncrement}
-          disabled={clampedValue >= maxDots}
-          className={`flex-1 px-3 py-2 rounded-lg font-medium text-white transition-all duration-200 touch-manipulation ${
-            clampedValue >= maxDots
-              ? "bg-gray-300 cursor-not-allowed"
-              : `${colors.button} active:scale-95`
-          }`}
-          style={{ touchAction: "manipulation" }}
-        >
-          +
-        </button>
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <button
+            onClick={onDecrement}
+            disabled={clampedValue <= 0}
+            className={`flex-1 px-3 py-2 rounded-lg font-medium text-white transition-all duration-200 touch-manipulation ${
+              clampedValue <= 0
+                ? "bg-gray-300 cursor-not-allowed"
+                : `${colors.button} active:scale-95`
+            }`}
+            style={{ touchAction: "manipulation" }}
+          >
+            −
+          </button>
+          <button
+            onClick={onReset}
+            className="px-4 py-2 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95 transition-all duration-200 touch-manipulation"
+            style={{ touchAction: "manipulation" }}
+          >
+            Reset
+          </button>
+          <button
+            onClick={onIncrement}
+            disabled={clampedValue >= maxDots}
+            className={`flex-1 px-3 py-2 rounded-lg font-medium text-white transition-all duration-200 touch-manipulation ${
+              clampedValue >= maxDots
+                ? "bg-gray-300 cursor-not-allowed"
+                : `${colors.button} active:scale-95`
+            }`}
+            style={{ touchAction: "manipulation" }}
+          >
+            +
+          </button>
+        </div>
+        {name === "Civilization" && onBuy && buyCost !== undefined && (
+          <button
+            onClick={onBuy}
+            disabled={canBuy === false}
+            className={`w-full px-3 py-2 rounded-lg font-medium text-sm text-white transition-all duration-200 touch-manipulation ${
+              canBuy === false
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700 active:scale-95"
+            }`}
+            style={{ touchAction: "manipulation" }}
+            title={
+              canBuy === false
+                ? "Insufficient resources"
+                : `Buy a civilization point for ${buyCost} resources`
+            }
+          >
+            Buy ({buyCost})
+          </button>
+        )}
+        {name === "Extinction" && (
+          <div className="flex gap-2">
+            {onBuy && buyCost !== undefined && (
+              <button
+                onClick={onBuy}
+                disabled={canBuy === false}
+                className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm text-white transition-all duration-200 touch-manipulation ${
+                  canBuy === false
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700 active:scale-95"
+                }`}
+                style={{ touchAction: "manipulation" }}
+                title={
+                  canBuy === false
+                    ? "Requires: Community turn, Research Lab trait, and sufficient resources"
+                    : `Buy an extinction point decrease for ${buyCost} resources`
+                }
+              >
+                Buy ({buyCost})
+              </button>
+            )}
+            {onCompromise && (
+              <button
+                onClick={onCompromise}
+                disabled={canCompromise === false}
+                className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm text-white transition-all duration-200 touch-manipulation ${
+                  canCompromise === false
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700 active:scale-95"
+                }`}
+                style={{ touchAction: "manipulation" }}
+                title={
+                  canCompromise === false
+                    ? "Not available during creation phase"
+                    : `Increase extinction by 1, gain ${
+                        compromiseValue ?? 5
+                      } resources`
+                }
+              >
+                Compromise ({compromiseValue ?? 5})
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

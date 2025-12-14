@@ -35,7 +35,7 @@
     "id": "deck4-5",
     "displayName": "Sawhouse",
     "flavor": "Never thought you'd get to lumberjacking in the apocalypse.",
-    "effect": "Community maintenance costs are reduced by 1d2 (minimum 1).",
+    "effect": "Community upkeep costs are reduced by 1d2 (minimum 1).",
     "quantity": 5,
     "traitCost": 6
   },
@@ -43,7 +43,7 @@
     "id": "deck4-6",
     "displayName": "Blacksmith",
     "flavor": "This is a lot harder than it looks, and it looks hard.",
-    "effect": "Community maintenance costs are reduced by 1d2 (minimum 1).",
+    "effect": "Community upkeep costs are reduced by 1d2 (minimum 1).",
     "quantity": 5,
     "traitCost": 6
   },

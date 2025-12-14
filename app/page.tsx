@@ -13,6 +13,7 @@ import PlayerTracker from "@/components/PlayerTracker";
 import DeckTabs from "@/components/DeckTabs";
 import SaveLoadControls from "@/components/SaveLoadControls";
 import GameOutcomeBanner from "@/components/GameOutcomeBanner";
+import PasswordAuth from "@/components/PasswordAuth";
 import { Card as CardType } from "@/types/card";
 import {
   GameState,
@@ -46,6 +47,9 @@ type DeckTab =
   | "wanderer";
 
 export default function Home() {
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   // Core game state
   const [pinnedCards, setPinnedCards] = useState<PinnedCardWithDeck[]>([]);
   const [extinctionValue, setExtinctionValue] = useState(0);
@@ -58,6 +62,9 @@ export default function Home() {
     soloRounds: 4,
     turnAssist: true,
     players: [],
+    civilizationPointCost: 10,
+    extinctionPointCost: 10,
+    extinctionCompromise: 5,
   });
   const [playerResources, setPlayerResources] = useState<PlayerResource[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -98,9 +105,9 @@ export default function Home() {
   const [gameOutcome, setGameOutcome] = useState<"win" | "lose" | null>(null);
   const backgroundRef = useRef<HTMLDivElement>(null);
 
-  // Load background image from localStorage on mount
+  // Load background image from localStorage on mount (after hydration)
   useEffect(() => {
-    if (typeof window !== "undefined" && backgroundRef.current) {
+    if (backgroundRef.current) {
       const saved = localStorage.getItem("backgroundImage");
       const defaultBackground = "background-smoke.png";
       const backgroundToUse = saved || defaultBackground;
@@ -115,6 +122,7 @@ export default function Home() {
   const [deck4Cards, setDeck4Cards] = useState<CardType[]>([]);
   const [deck5Cards, setDeck5Cards] = useState<CardType[]>([]);
   const [deck6Cards, setDeck6Cards] = useState<CardType[]>([]);
+  const [isNewGameStarted, setIsNewGameStarted] = useState(false);
 
   // Deck states
   const [deck1State, setDeck1State] = useState<DeckState>({
@@ -184,6 +192,10 @@ export default function Home() {
             communityCostPerMember: loadedSettings.communityCostPerMember ?? 1,
             soloRounds: loadedSettings.soloRounds ?? 4,
             players: loadedSettings.players ?? [],
+            turnAssist: loadedSettings.turnAssist ?? true,
+            civilizationPointCost: loadedSettings.civilizationPointCost ?? 10,
+            extinctionPointCost: loadedSettings.extinctionPointCost ?? 10,
+            extinctionCompromise: loadedSettings.extinctionCompromise ?? 5,
           };
           setSettings(settingsWithDefaults);
           const savedResources: PlayerResource[] =
@@ -209,6 +221,10 @@ export default function Home() {
           communityCostPerMember: data.communityCostPerMember ?? 1,
           soloRounds: data.soloRounds ?? 4,
           players: data.players ?? [],
+          turnAssist: data.turnAssist ?? true,
+          civilizationPointCost: data.civilizationPointCost ?? 10,
+          extinctionPointCost: data.extinctionPointCost ?? 10,
+          extinctionCompromise: data.extinctionCompromise ?? 5,
         };
         setSettings(settingsWithDefaults);
         const initialResources: PlayerResource[] =
@@ -555,17 +571,23 @@ export default function Home() {
   );
 
   // Deck handlers - Deck 3 (Individual Traits)
-  const handleDeck3CardsLoaded = useCallback((cards: CardType[]) => {
-    setDeck3Cards(cards);
-    if (deck3State.availableCards.length === 0) {
-      setDeck3State({
-        availableCards: initializeCardPool(cards),
-        revealedCards: [],
-        discardedCards: [],
-        drawnCard: null,
-      });
-    }
-  }, []);
+  const handleDeck3CardsLoaded = useCallback(
+    (cards: CardType[]) => {
+      setDeck3Cards(cards);
+      if (deck3State.availableCards.length === 0 || isNewGameStarted) {
+        const deck3AvailableCards = initializeCardPool(cards);
+        const { selected: deck3Revealed, remaining: deck3Remaining } =
+          getRandomCards(3, deck3AvailableCards);
+        setDeck3State({
+          availableCards: deck3Remaining,
+          revealedCards: deck3Revealed,
+          discardedCards: [],
+          drawnCard: null,
+        });
+      }
+    },
+    [deck3State.availableCards.length, isNewGameStarted]
+  );
 
   const handleDeck3Reveal = useCallback(() => {
     setDeck3State((prev) => {
@@ -767,17 +789,23 @@ export default function Home() {
   );
 
   // Deck handlers - Deck 4 (Community Traits) - similar to Deck 3
-  const handleDeck4CardsLoaded = useCallback((cards: CardType[]) => {
-    setDeck4Cards(cards);
-    if (deck4State.availableCards.length === 0) {
-      setDeck4State({
-        availableCards: initializeCardPool(cards),
-        revealedCards: [],
-        discardedCards: [],
-        drawnCard: null,
-      });
-    }
-  }, []);
+  const handleDeck4CardsLoaded = useCallback(
+    (cards: CardType[]) => {
+      setDeck4Cards(cards);
+      if (deck4State.availableCards.length === 0 || isNewGameStarted) {
+        const deck4AvailableCards = initializeCardPool(cards);
+        const { selected: deck4Revealed, remaining: deck4Remaining } =
+          getRandomCards(3, deck4AvailableCards);
+        setDeck4State({
+          availableCards: deck4Remaining,
+          revealedCards: deck4Revealed,
+          discardedCards: [],
+          drawnCard: null,
+        });
+      }
+    },
+    [deck4State.availableCards.length, isNewGameStarted]
+  );
 
   const handleDeck4Reveal = useCallback(() => {
     setDeck4State((prev) => {
@@ -975,17 +1003,23 @@ export default function Home() {
   );
 
   // Deck handlers - Deck 5 (Desperate Measures) - similar to Deck 3/4
-  const handleDeck5CardsLoaded = useCallback((cards: CardType[]) => {
-    setDeck5Cards(cards);
-    if (deck5State.availableCards.length === 0) {
-      setDeck5State({
-        availableCards: initializeCardPool(cards),
-        revealedCards: [],
-        discardedCards: [],
-        drawnCard: null,
-      });
-    }
-  }, []);
+  const handleDeck5CardsLoaded = useCallback(
+    (cards: CardType[]) => {
+      setDeck5Cards(cards);
+      if (deck5State.availableCards.length === 0 || isNewGameStarted) {
+        const deck5AvailableCards = initializeCardPool(cards);
+        const { selected: deck5Revealed, remaining: deck5Remaining } =
+          getRandomCards(3, deck5AvailableCards);
+        setDeck5State({
+          availableCards: deck5Remaining,
+          revealedCards: deck5Revealed,
+          discardedCards: [],
+          drawnCard: null,
+        });
+      }
+    },
+    [deck5State.availableCards.length, isNewGameStarted]
+  );
 
   const handleDeck5Reveal = useCallback(() => {
     setDeck5State((prev) => {
@@ -1629,6 +1663,255 @@ export default function Home() {
     );
   };
 
+  // Buy civilization point
+  const handleBuyCivilizationPoint = useCallback(() => {
+    const cost = settings.civilizationPointCost ?? 10;
+
+    if (turnOrder.length === 0 || currentTurnIndex >= turnOrder.length) {
+      return;
+    }
+
+    const turnId = turnOrder[currentTurnIndex];
+
+    // Check if it's a community turn
+    const community = communities.find((c) => c.id === turnId);
+    if (community) {
+      // It's a community turn
+      if (community.resources >= cost) {
+        handleCommunityResourceChange(community.id, community.resources - cost);
+        handleCivilizationIncrement();
+      }
+    } else if (turnId !== "creation") {
+      // It's a player turn
+      const playerIndex = playerResources.findIndex((p) => p.name === turnId);
+      if (
+        playerIndex !== -1 &&
+        playerResources[playerIndex].resources >= cost
+      ) {
+        handlePlayerResourceChange(
+          playerIndex,
+          playerResources[playerIndex].resources - cost
+        );
+        handleCivilizationIncrement();
+      }
+    }
+  }, [
+    settings.civilizationPointCost,
+    turnOrder,
+    currentTurnIndex,
+    communities,
+    playerResources,
+    handleCommunityResourceChange,
+    handlePlayerResourceChange,
+    handleCivilizationIncrement,
+  ]);
+
+  // Check if buy is possible
+  const canBuyCivilizationPoint = useCallback((): boolean => {
+    // If Turn Assist is disabled, always enable the button
+    if (!(settings.turnAssist ?? true)) {
+      return true;
+    }
+
+    const cost = settings.civilizationPointCost ?? 10;
+
+    if (turnOrder.length === 0 || currentTurnIndex >= turnOrder.length) {
+      return false;
+    }
+
+    const turnId = turnOrder[currentTurnIndex];
+
+    if (turnId === "creation") {
+      return false;
+    }
+
+    // Check if it's a community turn
+    const community = communities.find((c) => c.id === turnId);
+    if (community) {
+      return community.resources >= cost;
+    }
+
+    // It's a player turn
+    const player = playerResources.find((p) => p.name === turnId);
+    if (player) {
+      return player.resources >= cost;
+    }
+
+    return false;
+  }, [
+    settings.turnAssist,
+    settings.civilizationPointCost,
+    turnOrder,
+    currentTurnIndex,
+    communities,
+    playerResources,
+  ]);
+
+  // Buy extinction point (only for communities with Research Lab trait)
+  const handleBuyExtinctionPoint = useCallback(() => {
+    const cost = settings.extinctionPointCost ?? 10;
+
+    if (turnOrder.length === 0 || currentTurnIndex >= turnOrder.length) {
+      return;
+    }
+
+    const turnId = turnOrder[currentTurnIndex];
+
+    // Must be a community turn
+    const community = communities.find((c) => c.id === turnId);
+    if (!community) {
+      return;
+    }
+
+    // Check if community has Research Lab trait
+    const hasResearchLab = pinnedCards.some((card) => {
+      if (
+        card.deckTitle === "Community Traits" &&
+        card.displayName === "Research Lab"
+      ) {
+        return communityTraitAssignments.get(card.pinnedId) === community.id;
+      }
+      return false;
+    });
+
+    if (!hasResearchLab) {
+      return;
+    }
+
+    // Check if community has sufficient resources
+    if (community.resources >= cost) {
+      handleCommunityResourceChange(community.id, community.resources - cost);
+      setExtinctionValue((prev) => Math.max(0, prev - 1));
+    }
+  }, [
+    settings.extinctionPointCost,
+    turnOrder,
+    currentTurnIndex,
+    communities,
+    pinnedCards,
+    communityTraitAssignments,
+    handleCommunityResourceChange,
+  ]);
+
+  // Check if buy extinction point is possible
+  const canBuyExtinctionPoint = useCallback((): boolean => {
+    // If Turn Assist is disabled, always enable the button
+    if (!(settings.turnAssist ?? true)) {
+      return true;
+    }
+
+    const cost = settings.extinctionPointCost ?? 10;
+
+    if (turnOrder.length === 0 || currentTurnIndex >= turnOrder.length) {
+      return false;
+    }
+
+    const turnId = turnOrder[currentTurnIndex];
+
+    // Must be a community turn (not individual or creation)
+    if (turnId === "creation") {
+      return false;
+    }
+
+    const community = communities.find((c) => c.id === turnId);
+    if (!community) {
+      return false; // Not a community turn
+    }
+
+    // Check if community has Research Lab trait
+    const hasResearchLab = pinnedCards.some((card) => {
+      if (
+        card.deckTitle === "Community Traits" &&
+        card.displayName === "Research Lab"
+      ) {
+        return communityTraitAssignments.get(card.pinnedId) === community.id;
+      }
+      return false;
+    });
+
+    if (!hasResearchLab) {
+      return false;
+    }
+
+    // Check if community has sufficient resources
+    return community.resources >= cost;
+  }, [
+    settings.turnAssist,
+    settings.extinctionPointCost,
+    turnOrder,
+    currentTurnIndex,
+    communities,
+    pinnedCards,
+    communityTraitAssignments,
+  ]);
+
+  // Compromise: Increase extinction by 1, add resources based on setting
+  const handleCompromise = useCallback(() => {
+    const resourceGain = settings.extinctionCompromise ?? 5;
+
+    if (turnOrder.length === 0 || currentTurnIndex >= turnOrder.length) {
+      return;
+    }
+
+    const turnId = turnOrder[currentTurnIndex];
+
+    // Must not be creation phase
+    if (turnId === "creation") {
+      return;
+    }
+
+    // Check if it's a community turn
+    const community = communities.find((c) => c.id === turnId);
+    if (community) {
+      // It's a community turn
+      handleCommunityResourceChange(
+        community.id,
+        community.resources + resourceGain
+      );
+      setExtinctionValue((prev) => prev + 1);
+    } else {
+      // It's a player turn
+      const playerIndex = playerResources.findIndex((p) => p.name === turnId);
+      if (playerIndex !== -1) {
+        handlePlayerResourceChange(
+          playerIndex,
+          playerResources[playerIndex].resources + resourceGain
+        );
+        setExtinctionValue((prev) => prev + 1);
+      }
+    }
+  }, [
+    settings.extinctionCompromise,
+    turnOrder,
+    currentTurnIndex,
+    communities,
+    playerResources,
+    handleCommunityResourceChange,
+    handlePlayerResourceChange,
+  ]);
+
+  // Check if compromise is possible (enabled for players and communities, not creation)
+  const canCompromise = useCallback((): boolean => {
+    // If Turn Assist is disabled, always enable the button
+    if (!(settings.turnAssist ?? true)) {
+      return true;
+    }
+
+    if (turnOrder.length === 0 || currentTurnIndex >= turnOrder.length) {
+      return false;
+    }
+
+    const turnId = turnOrder[currentTurnIndex];
+
+    // Must not be creation phase
+    if (turnId === "creation") {
+      return false;
+    }
+
+    // Enabled for both players and communities
+    return true;
+  }, [settings.turnAssist, turnOrder, currentTurnIndex]);
+
   const getPlayerCommunity = (playerName: string): Community | null => {
     return (
       communities.find((c) => c.memberPlayerNames.includes(playerName)) || null
@@ -2234,6 +2517,9 @@ export default function Home() {
         soloRounds: loadedSettings.soloRounds ?? 4,
         turnAssist: loadedSettings.turnAssist ?? true,
         players: loadedSettings.players ?? [],
+        civilizationPointCost: loadedSettings.civilizationPointCost ?? 10,
+        extinctionPointCost: loadedSettings.extinctionPointCost ?? 10,
+        extinctionCompromise: loadedSettings.extinctionCompromise ?? 5,
       };
       setSettings(settingsWithDefaults);
     }
@@ -2410,9 +2696,17 @@ export default function Home() {
     setActiveDeckTab("individualEvent");
     setIsLoadingSettings(false); // Allow UI to render after dismissing
     setShowLoadPrompt(false);
+
+    // Reset the flag after a short delay to allow cards to load
+    setTimeout(() => {
+      setIsNewGameStarted(false);
+    }, 1000);
   }, [deck1Cards, deck2Cards, deck3Cards, deck4Cards, deck5Cards]);
 
   const handleNewGame = useCallback(() => {
+    // Mark that a new game has started
+    setIsNewGameStarted(true);
+
     // Reset all game state to initial values
     setExtinctionValue(0);
     setCivilizationValue(0);
@@ -2497,340 +2791,376 @@ export default function Home() {
 
   return (
     <>
-      {showLoadPrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[200] flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Load Saved Game?</h2>
-            <p className="text-gray-600 mb-6">
-              A saved game was found. Would you like to load it?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleLoadGame}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Load Game
-              </button>
-              <button
-                onClick={handleDismissLoadPrompt}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Start New
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      <GameOutcomeBanner outcome={gameOutcome} />
-      <div
-        ref={backgroundRef}
-        className="app-background flex flex-col"
-        style={{ minHeight: "200vh" }}
-      >
-        <div
-          className="flex-1 flex flex-col py-8 pb-40 md:pb-28 relative z-10"
-          style={gameOutcome ? { paddingTop: "80px" } : {}}
-        >
-          <div className="w-full">
-            <div className="px-4 sm:px-6 lg:px-8 mb-8">
-              <PageHeader />
-            </div>
-            <PageBody
-              leftSidebar={
-                <div className="space-y-4">
-                  <DiceRoller
-                    currentTurnIndex={currentTurnIndex}
-                    turnOrder={turnOrder}
-                    communities={communities}
-                    pinnedCards={pinnedCards}
-                    cardPlayerAssignments={cardPlayerAssignments}
-                  />
-                  {!isLoadingSettings && (
-                    <PlayerTracker
-                      players={playerResources}
-                      onResourceChange={handlePlayerResourceChange}
-                      communities={communities}
-                      availablePlayers={playerResources.map((p) => p.name)}
-                      onCommunityResourceChange={handleCommunityResourceChange}
-                      onUpdateCommunity={handleUpdateCommunity}
-                      onDisbandCommunity={handleDisbandCommunity}
-                      onCreateCommunity={handleCreateCommunity}
-                      getPlayerCommunity={getPlayerCommunity}
-                      playerResources={playerResources}
-                      communityCostPerMember={settings.communityCostPerMember}
-                      roundValue={roundValue}
-                      soloRounds={settings.soloRounds}
-                      missingTurnPlayers={missingTurnPlayers}
-                      onToggleMissingTurn={handleToggleMissingTurn}
-                      missingResourcesPlayers={missingResourcesPlayers}
-                      onToggleMissingResources={handleToggleMissingResources}
-                      extraEventCardPlayers={extraEventCardPlayers}
-                      onToggleExtraEventCard={handleToggleExtraEventCard}
-                      wandererPlayers={wandererPlayers}
-                      currentTurnIndex={currentTurnIndex}
-                      turnOrder={turnOrder}
-                      pinnedCards={pinnedCards}
-                      cardPlayerAssignments={cardPlayerAssignments}
-                      communityTraitAssignments={communityTraitAssignments}
-                      individualTraitCards={deck3Cards}
-                      communityTraitCards={deck4Cards}
-                    />
-                  )}
+      {!isAuthenticated ? (
+        <PasswordAuth onAuthenticated={() => setIsAuthenticated(true)} />
+      ) : (
+        <>
+          {showLoadPrompt && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-[200] flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+                <h2 className="text-xl font-bold mb-4">Load Saved Game?</h2>
+                <p className="text-gray-600 mb-6">
+                  A saved game was found. Would you like to load it?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleLoadGame}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Load Game
+                  </button>
+                  <button
+                    onClick={handleDismissLoadPrompt}
+                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Start New
+                  </button>
                 </div>
-              }
-              rightSidebar={
-                !isLoadingSettings ? (
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit">
-                    <CountersContent
-                      roundValue={roundValue}
-                      onRoundIncrement={handleRoundIncrement}
-                      onRoundDecrement={handleRoundDecrement}
-                      onRoundReset={handleRoundReset}
-                      roundCounterAnimate={roundCounterAnimate}
-                      extinctionValue={extinctionValue}
-                      extinctionCounterAnimate={extinctionCounterAnimate}
-                      civilizationValue={civilizationValue}
-                      civilizationCounterAnimate={civilizationCounterAnimate}
-                      extinctionMax={settings.extinctionCounterMax}
-                      civilizationMax={settings.civilizationCounterMax}
-                      onExtinctionIncrement={handleExtinctionIncrement}
-                      onExtinctionDecrement={handleExtinctionDecrement}
-                      onExtinctionReset={handleExtinctionReset}
-                      onCivilizationIncrement={handleCivilizationIncrement}
-                      onCivilizationDecrement={handleCivilizationDecrement}
-                      onCivilizationReset={handleCivilizationReset}
-                      gameState={buildGameState()}
-                      onStateRestored={restoreGameState}
-                      onNewGame={handleNewGame}
-                      settings={settings}
-                      onSettingsChange={handleSettingsChange}
-                      currentTurnIndex={currentTurnIndex}
-                      turnOrder={turnOrder}
-                      onTurnIncrement={handleTurnIncrement}
-                      onTurnDecrement={handleTurnDecrement}
-                      onTurnReset={handleTurnReset}
-                      communities={communities}
-                      currentTurnActionIndex={currentTurnActionIndex}
-                      turnActions={getTurnActionsForCurrentTurn()}
-                      onTurnActionIncrement={handleTurnActionIncrement}
-                      onTurnActionDecrement={handleTurnActionDecrement}
-                    />
-                  </div>
-                ) : null
-              }
+              </div>
+            </div>
+          )}
+          <GameOutcomeBanner outcome={gameOutcome} />
+          <div
+            ref={backgroundRef}
+            className="app-background flex flex-col"
+            style={{ minHeight: "200vh" }}
+          >
+            <div
+              className="flex-1 flex flex-col py-8 pb-40 md:pb-28 relative z-10"
+              style={gameOutcome ? { paddingTop: "80px" } : {}}
             >
-              <DeckTabs
-                activeTab={activeDeckTab}
-                onTabChange={setActiveDeckTab}
-              >
-                {{
-                  individualEvent: (
-                    <DrawDeck
-                      title="Individual Event"
-                      dataFile="/data/deck1-individual-event.json"
-                      availableCards={deck1State.availableCards}
-                      drawnCard={deck1State.drawnCard}
-                      onDraw={handleDeck1Draw}
-                      onShuffle={handleDeck1Shuffle}
-                      onCardsLoaded={handleDeck1CardsLoaded}
-                      lastDrawPlayerName={deck1LastDrawPlayerName}
-                      disabled={shouldDisableForTurn(
-                        () => !isCurrentTurnPlayer()
+              <div className="w-full">
+                <div className="px-4 sm:px-6 lg:px-8 mb-8">
+                  <PageHeader />
+                </div>
+                <PageBody
+                  leftSidebar={
+                    <div className="space-y-4">
+                      <DiceRoller
+                        currentTurnIndex={currentTurnIndex}
+                        turnOrder={turnOrder}
+                        communities={communities}
+                        pinnedCards={pinnedCards}
+                        cardPlayerAssignments={cardPlayerAssignments}
+                      />
+                      {!isLoadingSettings && (
+                        <PlayerTracker
+                          players={playerResources}
+                          onResourceChange={handlePlayerResourceChange}
+                          communities={communities}
+                          availablePlayers={playerResources.map((p) => p.name)}
+                          onCommunityResourceChange={
+                            handleCommunityResourceChange
+                          }
+                          onUpdateCommunity={handleUpdateCommunity}
+                          onDisbandCommunity={handleDisbandCommunity}
+                          onCreateCommunity={handleCreateCommunity}
+                          getPlayerCommunity={getPlayerCommunity}
+                          playerResources={playerResources}
+                          communityCostPerMember={
+                            settings.communityCostPerMember
+                          }
+                          roundValue={roundValue}
+                          soloRounds={settings.soloRounds}
+                          missingTurnPlayers={missingTurnPlayers}
+                          onToggleMissingTurn={handleToggleMissingTurn}
+                          missingResourcesPlayers={missingResourcesPlayers}
+                          onToggleMissingResources={
+                            handleToggleMissingResources
+                          }
+                          extraEventCardPlayers={extraEventCardPlayers}
+                          onToggleExtraEventCard={handleToggleExtraEventCard}
+                          wandererPlayers={wandererPlayers}
+                          currentTurnIndex={currentTurnIndex}
+                          turnOrder={turnOrder}
+                          pinnedCards={pinnedCards}
+                          cardPlayerAssignments={cardPlayerAssignments}
+                          communityTraitAssignments={communityTraitAssignments}
+                          individualTraitCards={deck3Cards}
+                          communityTraitCards={deck4Cards}
+                        />
                       )}
-                      individualTraitCards={deck3Cards}
-                      communityTraitCards={deck4Cards}
-                    />
-                  ),
-                  communityEvent: (
-                    <DrawDeck
-                      title="Community Event"
-                      dataFile="/data/deck2-community-event.json"
-                      availableCards={deck2State.availableCards}
-                      drawnCard={deck2State.drawnCard}
-                      onDraw={handleDeck2Draw}
-                      onShuffle={handleDeck2Shuffle}
-                      onCardsLoaded={handleDeck2CardsLoaded}
-                      lastDrawPlayerName={deck2LastDrawPlayerName}
-                      lastDrawRound={deck2LastDrawRound}
-                      disabled={shouldDisableForTurn(
-                        () => isCurrentTurnPlayer() || isCreationTurn()
-                      )}
-                      individualTraitCards={deck3Cards}
-                      communityTraitCards={deck4Cards}
-                    />
-                  ),
-                  individualTraits: (
-                    <RevealDeck
-                      title="Individual Traits"
-                      dataFile="/data/deck3-individual-trait.json"
-                      pinnedCards={pinnedCards.filter(
-                        (c) => c.deckTitle === "Individual Traits"
-                      )}
-                      availableCards={deck3State.availableCards}
-                      revealedCards={deck3State.revealedCards}
-                      discardedCards={deck3State.discardedCards}
-                      onPin={handleDeck3Pin}
-                      onUnpin={handleDeck3Unpin}
-                      onReveal={handleDeck3Reveal}
-                      onCardSelect={handleDeck3CardSelect}
-                      onShuffle={handleDeck3Shuffle}
-                      onCardsLoaded={handleDeck3CardsLoaded}
-                      onSelect={handleDeck3Select}
-                      disabled={shouldDisableForTurn(
-                        () => !isCurrentTurnPlayer()
-                      )}
-                      currentTurnIndex={currentTurnIndex}
-                      turnOrder={turnOrder}
-                      communities={communities}
-                      playerResources={playerResources}
-                      turnAssist={settings.turnAssist ?? true}
-                      isCreationTurn={isCreationTurn()}
-                      individualTraitCards={deck3Cards}
-                      communityTraitCards={deck4Cards}
-                    />
-                  ),
-                  communityTraits: (
-                    <RevealDeck
-                      title="Community Traits"
-                      dataFile="/data/deck4-community-trait.json"
-                      pinnedCards={pinnedCards.filter(
-                        (c) => c.deckTitle === "Community Traits"
-                      )}
-                      availableCards={deck4State.availableCards}
-                      revealedCards={deck4State.revealedCards}
-                      discardedCards={deck4State.discardedCards}
-                      onPin={handleDeck4Pin}
-                      onUnpin={handleDeck4Unpin}
-                      onReveal={handleDeck4Reveal}
-                      onCardSelect={handleDeck4CardSelect}
-                      onShuffle={handleDeck4Shuffle}
-                      onCardsLoaded={handleDeck4CardsLoaded}
-                      onSelect={handleDeck4Select}
-                      disabled={shouldDisableForTurn(() =>
-                        isCurrentTurnPlayer()
-                      )}
-                      currentTurnIndex={currentTurnIndex}
-                      turnOrder={turnOrder}
-                      communities={communities}
-                      playerResources={playerResources}
-                      turnAssist={settings.turnAssist ?? true}
-                      isCreationTurn={isCreationTurn()}
-                      individualTraitCards={deck3Cards}
-                      communityTraitCards={deck4Cards}
-                    />
-                  ),
-                  desperateMeasures: (
-                    <RevealDeck
-                      title="Desperate Measures"
-                      dataFile="/data/deck5-desperate-measures.json"
-                      pinnedCards={pinnedCards.filter(
-                        (c) => c.deckTitle === "Desperate Measures"
-                      )}
-                      availableCards={deck5State.availableCards}
-                      revealedCards={deck5State.revealedCards}
-                      discardedCards={deck5State.discardedCards}
-                      onPin={handleDeck5Pin}
-                      onUnpin={handleDeck5Unpin}
-                      onReveal={handleDeck5Reveal}
-                      onCardSelect={handleDeck5CardSelect}
-                      onShuffle={handleDeck5Shuffle}
-                      onCardsLoaded={handleDeck5CardsLoaded}
-                      currentTurnIndex={currentTurnIndex}
-                      turnOrder={turnOrder}
-                      communities={communities}
-                      turnAssist={settings.turnAssist ?? true}
-                      isCreationTurn={isCreationTurn()}
-                      individualTraitCards={deck3Cards}
-                      communityTraitCards={deck4Cards}
-                    />
-                  ),
-                  wanderer: (
-                    <DrawDeck
-                      title="Wanderer"
-                      dataFile="/data/deck6-wanderer.json"
-                      availableCards={deck6State.availableCards}
-                      drawnCard={deck6State.drawnCard}
-                      onDraw={handleDeck6Draw}
-                      onShuffle={handleDeck6Shuffle}
-                      onCardsLoaded={handleDeck6CardsLoaded}
-                      lastDrawPlayerName={deck6LastDrawPlayerName}
-                      disabled={shouldDisableForTurn(() => {
-                        return (
-                          wandererPlayers.size === 0 ||
-                          !(
-                            turnOrder.length > 0 &&
-                            turnOrder[currentTurnIndex] !== "creation" &&
-                            !communities.some(
-                              (c) => c.id === turnOrder[currentTurnIndex]
-                            ) &&
-                            wandererPlayers.has(turnOrder[currentTurnIndex])
-                          )
-                        );
-                      })}
-                      individualTraitCards={deck3Cards}
-                      communityTraitCards={deck4Cards}
-                    />
-                  ),
-                }}
-              </DeckTabs>
-            </PageBody>
+                    </div>
+                  }
+                  rightSidebar={
+                    !isLoadingSettings ? (
+                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit">
+                        <CountersContent
+                          roundValue={roundValue}
+                          onRoundIncrement={handleRoundIncrement}
+                          onRoundDecrement={handleRoundDecrement}
+                          onRoundReset={handleRoundReset}
+                          roundCounterAnimate={roundCounterAnimate}
+                          extinctionValue={extinctionValue}
+                          extinctionCounterAnimate={extinctionCounterAnimate}
+                          civilizationValue={civilizationValue}
+                          civilizationCounterAnimate={
+                            civilizationCounterAnimate
+                          }
+                          extinctionMax={settings.extinctionCounterMax}
+                          civilizationMax={settings.civilizationCounterMax}
+                          onExtinctionIncrement={handleExtinctionIncrement}
+                          onExtinctionDecrement={handleExtinctionDecrement}
+                          onExtinctionReset={handleExtinctionReset}
+                          onBuyExtinctionPoint={handleBuyExtinctionPoint}
+                          extinctionPointCost={
+                            settings.extinctionPointCost ?? 10
+                          }
+                          canBuyExtinctionPoint={canBuyExtinctionPoint()}
+                          onCompromise={handleCompromise}
+                          canCompromise={canCompromise()}
+                          compromiseValue={settings.extinctionCompromise ?? 5}
+                          onCivilizationIncrement={handleCivilizationIncrement}
+                          onCivilizationDecrement={handleCivilizationDecrement}
+                          onCivilizationReset={handleCivilizationReset}
+                          onBuyCivilizationPoint={handleBuyCivilizationPoint}
+                          civilizationPointCost={
+                            settings.civilizationPointCost ?? 10
+                          }
+                          canBuyCivilizationPoint={canBuyCivilizationPoint()}
+                          gameState={buildGameState()}
+                          onStateRestored={restoreGameState}
+                          onNewGame={handleNewGame}
+                          settings={settings}
+                          onSettingsChange={handleSettingsChange}
+                          currentTurnIndex={currentTurnIndex}
+                          turnOrder={turnOrder}
+                          onTurnIncrement={handleTurnIncrement}
+                          onTurnDecrement={handleTurnDecrement}
+                          onTurnReset={handleTurnReset}
+                          communities={communities}
+                          currentTurnActionIndex={currentTurnActionIndex}
+                          turnActions={getTurnActionsForCurrentTurn()}
+                          onTurnActionIncrement={handleTurnActionIncrement}
+                          onTurnActionDecrement={handleTurnActionDecrement}
+                        />
+                      </div>
+                    ) : null
+                  }
+                >
+                  <DeckTabs
+                    activeTab={activeDeckTab}
+                    onTabChange={setActiveDeckTab}
+                  >
+                    {{
+                      individualEvent: (
+                        <DrawDeck
+                          title="Individual Event"
+                          dataFile="/data/deck1-individual-event.json"
+                          availableCards={deck1State.availableCards}
+                          drawnCard={deck1State.drawnCard}
+                          onDraw={handleDeck1Draw}
+                          onShuffle={handleDeck1Shuffle}
+                          onCardsLoaded={handleDeck1CardsLoaded}
+                          lastDrawPlayerName={deck1LastDrawPlayerName}
+                          disabled={shouldDisableForTurn(
+                            () => !isCurrentTurnPlayer()
+                          )}
+                          individualTraitCards={deck3Cards}
+                          communityTraitCards={deck4Cards}
+                        />
+                      ),
+                      communityEvent: (
+                        <DrawDeck
+                          title="Community Event"
+                          dataFile="/data/deck2-community-event.json"
+                          availableCards={deck2State.availableCards}
+                          drawnCard={deck2State.drawnCard}
+                          onDraw={handleDeck2Draw}
+                          onShuffle={handleDeck2Shuffle}
+                          onCardsLoaded={handleDeck2CardsLoaded}
+                          lastDrawPlayerName={deck2LastDrawPlayerName}
+                          lastDrawRound={deck2LastDrawRound}
+                          disabled={shouldDisableForTurn(
+                            () => isCurrentTurnPlayer() || isCreationTurn()
+                          )}
+                          individualTraitCards={deck3Cards}
+                          communityTraitCards={deck4Cards}
+                        />
+                      ),
+                      individualTraits: (
+                        <RevealDeck
+                          title="Individual Traits"
+                          dataFile="/data/deck3-individual-trait.json"
+                          pinnedCards={pinnedCards.filter(
+                            (c) => c.deckTitle === "Individual Traits"
+                          )}
+                          availableCards={deck3State.availableCards}
+                          revealedCards={deck3State.revealedCards}
+                          discardedCards={deck3State.discardedCards}
+                          onPin={handleDeck3Pin}
+                          onUnpin={handleDeck3Unpin}
+                          onReveal={handleDeck3Reveal}
+                          onCardSelect={handleDeck3CardSelect}
+                          onShuffle={handleDeck3Shuffle}
+                          onCardsLoaded={handleDeck3CardsLoaded}
+                          onSelect={handleDeck3Select}
+                          disabled={shouldDisableForTurn(
+                            () => !isCurrentTurnPlayer()
+                          )}
+                          currentTurnIndex={currentTurnIndex}
+                          turnOrder={turnOrder}
+                          communities={communities}
+                          playerResources={playerResources}
+                          turnAssist={settings.turnAssist ?? true}
+                          isCreationTurn={isCreationTurn()}
+                          individualTraitCards={deck3Cards}
+                          communityTraitCards={deck4Cards}
+                        />
+                      ),
+                      communityTraits: (
+                        <RevealDeck
+                          title="Community Traits"
+                          dataFile="/data/deck4-community-trait.json"
+                          pinnedCards={pinnedCards.filter(
+                            (c) => c.deckTitle === "Community Traits"
+                          )}
+                          availableCards={deck4State.availableCards}
+                          revealedCards={deck4State.revealedCards}
+                          discardedCards={deck4State.discardedCards}
+                          onPin={handleDeck4Pin}
+                          onUnpin={handleDeck4Unpin}
+                          onReveal={handleDeck4Reveal}
+                          onCardSelect={handleDeck4CardSelect}
+                          onShuffle={handleDeck4Shuffle}
+                          onCardsLoaded={handleDeck4CardsLoaded}
+                          onSelect={handleDeck4Select}
+                          disabled={shouldDisableForTurn(() =>
+                            isCurrentTurnPlayer()
+                          )}
+                          currentTurnIndex={currentTurnIndex}
+                          turnOrder={turnOrder}
+                          communities={communities}
+                          playerResources={playerResources}
+                          turnAssist={settings.turnAssist ?? true}
+                          isCreationTurn={isCreationTurn()}
+                          individualTraitCards={deck3Cards}
+                          communityTraitCards={deck4Cards}
+                        />
+                      ),
+                      desperateMeasures: (
+                        <RevealDeck
+                          title="Desperate Measures"
+                          dataFile="/data/deck5-desperate-measures.json"
+                          pinnedCards={pinnedCards.filter(
+                            (c) => c.deckTitle === "Desperate Measures"
+                          )}
+                          availableCards={deck5State.availableCards}
+                          revealedCards={deck5State.revealedCards}
+                          discardedCards={deck5State.discardedCards}
+                          onPin={handleDeck5Pin}
+                          onUnpin={handleDeck5Unpin}
+                          onReveal={handleDeck5Reveal}
+                          onCardSelect={handleDeck5CardSelect}
+                          onShuffle={handleDeck5Shuffle}
+                          onCardsLoaded={handleDeck5CardsLoaded}
+                          currentTurnIndex={currentTurnIndex}
+                          turnOrder={turnOrder}
+                          communities={communities}
+                          turnAssist={settings.turnAssist ?? true}
+                          isCreationTurn={isCreationTurn()}
+                          individualTraitCards={deck3Cards}
+                          communityTraitCards={deck4Cards}
+                        />
+                      ),
+                      wanderer: (
+                        <DrawDeck
+                          title="Wanderer"
+                          dataFile="/data/deck6-wanderer.json"
+                          availableCards={deck6State.availableCards}
+                          drawnCard={deck6State.drawnCard}
+                          onDraw={handleDeck6Draw}
+                          onShuffle={handleDeck6Shuffle}
+                          onCardsLoaded={handleDeck6CardsLoaded}
+                          lastDrawPlayerName={deck6LastDrawPlayerName}
+                          disabled={shouldDisableForTurn(() => {
+                            return (
+                              wandererPlayers.size === 0 ||
+                              !(
+                                turnOrder.length > 0 &&
+                                turnOrder[currentTurnIndex] !== "creation" &&
+                                !communities.some(
+                                  (c) => c.id === turnOrder[currentTurnIndex]
+                                ) &&
+                                wandererPlayers.has(turnOrder[currentTurnIndex])
+                              )
+                            );
+                          })}
+                          individualTraitCards={deck3Cards}
+                          communityTraitCards={deck4Cards}
+                        />
+                      ),
+                    }}
+                  </DeckTabs>
+                </PageBody>
+              </div>
+              {/* Extra scrollable space to reveal more background */}
+              <div className="h-32 md:h-48" />
+            </div>
           </div>
-          {/* Extra scrollable space to reveal more background */}
-          <div className="h-32 md:h-48" />
-        </div>
-      </div>
-      <PinnedCardsBar
-        pinnedCards={pinnedCards}
-        onUnpin={handleUnpin}
-        extinctionValue={extinctionValue}
-        civilizationValue={civilizationValue}
-        roundValue={roundValue}
-        players={playerResources.map((p) => p.name)}
-        cardPlayerAssignments={cardPlayerAssignments}
-        onAssignPlayer={handleAssignPlayerToCard}
-        getCardPlayerAssignment={getCardPlayerAssignment}
-        communities={communities}
-        communityTraitAssignments={communityTraitAssignments}
-        onAssignCommunityTrait={handleAssignCommunityTrait}
-        getCommunityTraitAssignment={getCommunityTraitAssignment}
-        individualTraitCards={deck3Cards}
-        communityTraitCards={deck4Cards}
-      />
-      {!isLoadingSettings && (
-        <CountersSidebar
-          roundValue={roundValue}
-          onRoundIncrement={handleRoundIncrement}
-          onRoundDecrement={handleRoundDecrement}
-          onRoundReset={handleRoundReset}
-          roundCounterAnimate={roundCounterAnimate}
-          extinctionValue={extinctionValue}
-          extinctionCounterAnimate={extinctionCounterAnimate}
-          civilizationValue={civilizationValue}
-          civilizationCounterAnimate={civilizationCounterAnimate}
-          extinctionMax={settings.extinctionCounterMax}
-          civilizationMax={settings.civilizationCounterMax}
-          onExtinctionIncrement={handleExtinctionIncrement}
-          onExtinctionDecrement={handleExtinctionDecrement}
-          onExtinctionReset={handleExtinctionReset}
-          onCivilizationIncrement={handleCivilizationIncrement}
-          onCivilizationDecrement={handleCivilizationDecrement}
-          onCivilizationReset={handleCivilizationReset}
-          gameState={buildGameState()}
-          onStateRestored={restoreGameState}
-          onNewGame={handleNewGame}
-          settings={settings}
-          onSettingsChange={handleSettingsChange}
-          currentTurnIndex={currentTurnIndex}
-          turnOrder={turnOrder}
-          onTurnIncrement={handleTurnIncrement}
-          onTurnDecrement={handleTurnDecrement}
-          onTurnReset={handleTurnReset}
-          communities={communities}
-          currentTurnActionIndex={currentTurnActionIndex}
-          turnActions={getTurnActionsForCurrentTurn()}
-          onTurnActionIncrement={handleTurnActionIncrement}
-          onTurnActionDecrement={handleTurnActionDecrement}
-        />
+          <PinnedCardsBar
+            pinnedCards={pinnedCards}
+            onUnpin={handleUnpin}
+            extinctionValue={extinctionValue}
+            civilizationValue={civilizationValue}
+            roundValue={roundValue}
+            players={playerResources.map((p) => p.name)}
+            cardPlayerAssignments={cardPlayerAssignments}
+            onAssignPlayer={handleAssignPlayerToCard}
+            getCardPlayerAssignment={getCardPlayerAssignment}
+            communities={communities}
+            communityTraitAssignments={communityTraitAssignments}
+            onAssignCommunityTrait={handleAssignCommunityTrait}
+            getCommunityTraitAssignment={getCommunityTraitAssignment}
+            individualTraitCards={deck3Cards}
+            communityTraitCards={deck4Cards}
+          />
+          {!isLoadingSettings && (
+            <CountersSidebar
+              roundValue={roundValue}
+              onRoundIncrement={handleRoundIncrement}
+              onRoundDecrement={handleRoundDecrement}
+              onRoundReset={handleRoundReset}
+              roundCounterAnimate={roundCounterAnimate}
+              extinctionValue={extinctionValue}
+              extinctionCounterAnimate={extinctionCounterAnimate}
+              civilizationValue={civilizationValue}
+              civilizationCounterAnimate={civilizationCounterAnimate}
+              extinctionMax={settings.extinctionCounterMax}
+              civilizationMax={settings.civilizationCounterMax}
+              onExtinctionIncrement={handleExtinctionIncrement}
+              onExtinctionDecrement={handleExtinctionDecrement}
+              onExtinctionReset={handleExtinctionReset}
+              onBuyExtinctionPoint={handleBuyExtinctionPoint}
+              extinctionPointCost={settings.extinctionPointCost ?? 10}
+              canBuyExtinctionPoint={canBuyExtinctionPoint()}
+              onCompromise={handleCompromise}
+              canCompromise={canCompromise()}
+              compromiseValue={settings.extinctionCompromise ?? 5}
+              onCivilizationIncrement={handleCivilizationIncrement}
+              onCivilizationDecrement={handleCivilizationDecrement}
+              onCivilizationReset={handleCivilizationReset}
+              onBuyCivilizationPoint={handleBuyCivilizationPoint}
+              civilizationPointCost={settings.civilizationPointCost ?? 10}
+              canBuyCivilizationPoint={canBuyCivilizationPoint()}
+              gameState={buildGameState()}
+              onStateRestored={restoreGameState}
+              onNewGame={handleNewGame}
+              settings={settings}
+              onSettingsChange={handleSettingsChange}
+              currentTurnIndex={currentTurnIndex}
+              turnOrder={turnOrder}
+              onTurnIncrement={handleTurnIncrement}
+              onTurnDecrement={handleTurnDecrement}
+              onTurnReset={handleTurnReset}
+              communities={communities}
+              currentTurnActionIndex={currentTurnActionIndex}
+              turnActions={getTurnActionsForCurrentTurn()}
+              onTurnActionIncrement={handleTurnActionIncrement}
+              onTurnActionDecrement={handleTurnActionDecrement}
+            />
+          )}
+        </>
       )}
     </>
   );

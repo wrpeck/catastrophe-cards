@@ -19,9 +19,18 @@ interface CountersSidebarProps {
   onExtinctionIncrement: () => void;
   onExtinctionDecrement: () => void;
   onExtinctionReset: () => void;
+  onBuyExtinctionPoint?: () => void;
+  extinctionPointCost?: number;
+  canBuyExtinctionPoint?: boolean;
+  onCompromise?: () => void;
+  canCompromise?: boolean;
+  compromiseValue?: number;
   onCivilizationIncrement: () => void;
   onCivilizationDecrement: () => void;
   onCivilizationReset: () => void;
+  onBuyCivilizationPoint?: () => void;
+  civilizationPointCost?: number;
+  canBuyCivilizationPoint?: boolean;
   gameState: GameState;
   onStateRestored: (state: GameState) => void;
   onNewGame: () => void;
@@ -54,9 +63,18 @@ export default function CountersSidebar({
   onExtinctionIncrement,
   onExtinctionDecrement,
   onExtinctionReset,
+  onBuyExtinctionPoint,
+  extinctionPointCost,
+  canBuyExtinctionPoint,
+  onCompromise,
+  canCompromise,
+  compromiseValue,
   onCivilizationIncrement,
   onCivilizationDecrement,
   onCivilizationReset,
+  onBuyCivilizationPoint,
+  civilizationPointCost,
+  canBuyCivilizationPoint,
   gameState,
   onStateRestored,
   onNewGame,
@@ -168,9 +186,18 @@ export default function CountersSidebar({
             onExtinctionIncrement={onExtinctionIncrement}
             onExtinctionDecrement={onExtinctionDecrement}
             onExtinctionReset={onExtinctionReset}
+            onBuyExtinctionPoint={onBuyExtinctionPoint}
+            extinctionPointCost={extinctionPointCost}
+            canBuyExtinctionPoint={canBuyExtinctionPoint}
+            onCompromise={onCompromise}
+            canCompromise={canCompromise}
+            compromiseValue={compromiseValue}
             onCivilizationIncrement={onCivilizationIncrement}
             onCivilizationDecrement={onCivilizationDecrement}
             onCivilizationReset={onCivilizationReset}
+            onBuyCivilizationPoint={onBuyCivilizationPoint}
+            civilizationPointCost={civilizationPointCost}
+            canBuyCivilizationPoint={canBuyCivilizationPoint}
             gameState={gameState}
             onStateRestored={onStateRestored}
             onNewGame={onNewGame}

@@ -31,6 +31,9 @@ export interface Settings {
   soloRounds: number;
   players: { name: string }[];
   turnAssist?: boolean; // When enabled, enforces turn-based restrictions on card draws and actions
+  civilizationPointCost: number; // Cost per civilization point
+  extinctionPointCost: number; // Cost per extinction point
+  extinctionCompromise: number; // Resources gained from compromise
 }
 
 export interface GameState {

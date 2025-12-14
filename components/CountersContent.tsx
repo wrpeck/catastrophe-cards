@@ -22,9 +22,18 @@ interface CountersContentProps {
   onExtinctionIncrement: () => void;
   onExtinctionDecrement: () => void;
   onExtinctionReset: () => void;
+  onBuyExtinctionPoint?: () => void;
+  extinctionPointCost?: number;
+  canBuyExtinctionPoint?: boolean;
+  onCompromise?: () => void;
+  canCompromise?: boolean;
+  compromiseValue?: number;
   onCivilizationIncrement: () => void;
   onCivilizationDecrement: () => void;
   onCivilizationReset: () => void;
+  onBuyCivilizationPoint?: () => void;
+  civilizationPointCost?: number;
+  canBuyCivilizationPoint?: boolean;
   gameState: GameState;
   onStateRestored: (state: GameState) => void;
   onNewGame: () => void;
@@ -57,9 +66,18 @@ export default function CountersContent({
   onExtinctionIncrement,
   onExtinctionDecrement,
   onExtinctionReset,
+  onBuyExtinctionPoint,
+  extinctionPointCost,
+  canBuyExtinctionPoint,
+  onCompromise,
+  canCompromise,
+  compromiseValue,
   onCivilizationIncrement,
   onCivilizationDecrement,
   onCivilizationReset,
+  onBuyCivilizationPoint,
+  civilizationPointCost,
+  canBuyCivilizationPoint,
   gameState,
   onStateRestored,
   onNewGame,
@@ -199,6 +217,12 @@ export default function CountersContent({
             onDecrement={onExtinctionDecrement}
             onReset={onExtinctionReset}
             animate={extinctionCounterAnimate}
+            onBuy={onBuyExtinctionPoint}
+            buyCost={extinctionPointCost}
+            canBuy={canBuyExtinctionPoint}
+            onCompromise={onCompromise}
+            canCompromise={canCompromise}
+            compromiseValue={compromiseValue}
           />
           <GameCounter
             name="Civilization"
@@ -209,6 +233,9 @@ export default function CountersContent({
             onDecrement={onCivilizationDecrement}
             onReset={onCivilizationReset}
             animate={civilizationCounterAnimate}
+            onBuy={onBuyCivilizationPoint}
+            buyCost={civilizationPointCost}
+            canBuy={canBuyCivilizationPoint}
           />
         </div>
       )}

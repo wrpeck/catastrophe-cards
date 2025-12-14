@@ -21,26 +21,21 @@ export default function SettingsEditor({
 }: SettingsEditorProps) {
   const [localSettings, setLocalSettings] = useState<Settings>(settings);
   const [hasChanges, setHasChanges] = useState(false);
-  const [backgroundImage, setBackgroundImage] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("backgroundImage") || "background-smoke.png";
-    }
-    return "background-smoke.png";
-  });
+  const [backgroundImage, setBackgroundImage] = useState<string>(
+    "background-smoke.png"
+  );
 
   // Sync localSettings when settings prop changes
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
 
-  // Load background from localStorage on mount
+  // Load background from localStorage on mount (after hydration)
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("backgroundImage");
-      if (saved) {
-        setBackgroundImage(saved);
-        updateBackgroundImage(saved);
-      }
+    const saved = localStorage.getItem("backgroundImage");
+    if (saved) {
+      setBackgroundImage(saved);
+      updateBackgroundImage(saved);
     }
   }, []);
 
@@ -55,9 +50,7 @@ export default function SettingsEditor({
 
   const handleBackgroundChange = (imageName: string) => {
     setBackgroundImage(imageName);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("backgroundImage", imageName);
-    }
+    localStorage.setItem("backgroundImage", imageName);
     updateBackgroundImage(imageName);
   };
 
@@ -197,6 +190,71 @@ export default function SettingsEditor({
             onChange={(e) =>
               handleSoloRoundsChange(parseInt(e.target.value) || 0)
             }
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Civilization Point Cost
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={localSettings.civilizationPointCost ?? 10}
+            onChange={(e) => {
+              const updated = {
+                ...localSettings,
+                civilizationPointCost: parseInt(e.target.value) || 0,
+              };
+              setLocalSettings(updated);
+              setHasChanges(true);
+              onSettingsChange(updated);
+            }}
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Extinction Point Cost
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={localSettings.extinctionPointCost ?? 10}
+            onChange={(e) => {
+              const updated = {
+                ...localSettings,
+                extinctionPointCost: parseInt(e.target.value) || 0,
+              };
+              setLocalSettings(updated);
+              setHasChanges(true);
+              onSettingsChange(updated);
+            }}
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Extinction Compromise
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={localSettings.extinctionCompromise ?? 5}
+            onChange={(e) => {
+              const updated = {
+                ...localSettings,
+                extinctionCompromise: parseInt(e.target.value) || 0,
+              };
+              setLocalSettings(updated);
+              setHasChanges(true);
+              onSettingsChange(updated);
+            }}
             className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
