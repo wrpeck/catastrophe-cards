@@ -1,7 +1,8 @@
 import { Card as CardType } from "@/types/card";
-import { Community } from "@/types/gameState";
+import { Community, PinnedCardWithDeck } from "@/types/gameState";
 import { useState } from "react";
 import TraitEffectInfobox from "./TraitEffectInfobox";
+import { getEfficientTraitCostReduction } from "@/utils/communityTraitEffects";
 
 interface CardProps {
   card: CardType;
@@ -18,6 +19,8 @@ interface CardProps {
   communities?: Community[]; // Communities array
   individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
   communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
+  cardPlayerAssignments?: Map<string, string>; // Map of card keys to player names
+  pinnedCards?: PinnedCardWithDeck[]; // All pinned cards
 }
 
 export default function Card({
@@ -35,6 +38,8 @@ export default function Card({
   communities,
   individualTraitCards = [],
   communityTraitCards = [],
+  cardPlayerAssignments = new Map(),
+  pinnedCards = [],
 }: CardProps) {
   const [showTraitInfobox, setShowTraitInfobox] = useState(false);
   const [selectedTraitCard, setSelectedTraitCard] = useState<CardType | null>(
@@ -88,10 +93,41 @@ export default function Card({
     baseCost: number;
     memberCount?: number;
     isCommunity: boolean;
+    efficientReduction?: number;
   } | null => {
     if (deckTitle === "Individual Traits") {
+      const baseCost = card.traitCost ?? 5;
+
+      // Check if it's a community's turn (Efficient only applies on community turns)
+      const isCommunityTurn =
+        currentTurnIndex !== undefined &&
+        turnOrder &&
+        turnOrder.length > 0 &&
+        communities &&
+        currentTurnIndex < turnOrder.length &&
+        turnOrder[currentTurnIndex] !== "creation" &&
+        communities.some((c) => c.id === turnOrder[currentTurnIndex]);
+
+      if (isCommunityTurn && communities) {
+        const currentTurn = turnOrder[currentTurnIndex];
+        const currentCommunity = communities.find((c) => c.id === currentTurn);
+        if (currentCommunity) {
+          const efficientReduction = getEfficientTraitCostReduction(
+            currentCommunity,
+            cardPlayerAssignments,
+            pinnedCards
+          );
+          return {
+            baseCost: Math.max(1, baseCost - efficientReduction),
+            isCommunity: false,
+            efficientReduction:
+              efficientReduction > 0 ? efficientReduction : undefined,
+          };
+        }
+      }
+
       return {
-        baseCost: card.traitCost ?? 5,
+        baseCost,
         isCommunity: false,
       };
     } else if (deckTitle === "Community Traits") {
@@ -112,10 +148,19 @@ export default function Card({
         const currentTurn = turnOrder[currentTurnIndex];
         const currentCommunity = communities.find((c) => c.id === currentTurn);
         if (currentCommunity) {
+          const memberCount = currentCommunity.memberPlayerNames.length;
+          const efficientReduction = getEfficientTraitCostReduction(
+            currentCommunity,
+            cardPlayerAssignments,
+            pinnedCards
+          );
+
           return {
-            baseCost,
-            memberCount: currentCommunity.memberPlayerNames.length,
+            baseCost, // Return original baseCost, not finalCost
+            memberCount,
             isCommunity: true,
+            efficientReduction:
+              efficientReduction > 0 ? efficientReduction : undefined,
           };
         }
       }

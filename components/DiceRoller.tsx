@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Community, PinnedCardWithDeck } from "@/types/gameState";
+import {
+  Community,
+  PinnedCardWithDeck,
+  PlayerResource,
+} from "@/types/gameState";
+import { getCommunityMemberTraits } from "@/utils/communityTraitEffects";
 
 interface DiceRollerProps {
   currentTurnIndex: number;
@@ -9,6 +14,9 @@ interface DiceRollerProps {
   communities: Community[];
   pinnedCards?: PinnedCardWithDeck[];
   cardPlayerAssignments?: Map<string, string>;
+  onCommunityResourceChange?: (communityId: string, newValue: number) => void;
+  playerResources?: PlayerResource[];
+  onPlayerResourceChange?: (playerIndex: number, newValue: number) => void;
 }
 
 type DiceMode = "resource" | "d6";
@@ -19,6 +27,9 @@ export default function DiceRoller({
   communities,
   pinnedCards = [],
   cardPlayerAssignments = new Map(),
+  onCommunityResourceChange,
+  playerResources = [],
+  onPlayerResourceChange,
 }: DiceRollerProps) {
   const [mode, setMode] = useState<DiceMode>("resource");
 
@@ -122,6 +133,54 @@ export default function DiceRoller({
     return hasTrait("Survivalist");
   };
 
+  // Check if current community has a Lucky member
+  const hasCommunityLuckyMember = (): boolean => {
+    if (turnOrder.length === 0) {
+      return false;
+    }
+
+    const currentTurn = turnOrder[currentTurnIndex];
+    if (currentTurn === "creation") {
+      return false;
+    }
+
+    // Check if it's a community turn
+    const community = communities.find((c) => c.id === currentTurn);
+    if (!community) {
+      return false; // Not a community turn
+    }
+
+    // Get all individual traits for community members
+    const memberTraits = getCommunityMemberTraits(
+      community,
+      cardPlayerAssignments,
+      pinnedCards,
+      [] // individualTraitCards not needed for this check
+    );
+
+    // Check if any member has Lucky trait
+    return memberTraits.some((trait) => trait.displayName === "Lucky");
+  };
+
+  // Track the last community turn to detect when a new community turn begins
+  const [lastCommunityTurnId, setLastCommunityTurnId] = useState<string | null>(
+    null
+  );
+
+  // Check if current turn is a community (helper function)
+  const getCurrentCommunity = (): Community | null => {
+    if (turnOrder.length === 0) {
+      return null;
+    }
+
+    const currentTurn = turnOrder[currentTurnIndex];
+    if (currentTurn === "creation") {
+      return null;
+    }
+
+    return communities.find((c) => c.id === currentTurn) || null;
+  };
+
   // Reset reroll flag and roll values when turn changes
   useEffect(() => {
     const currentTurnName = getCurrentTurnName();
@@ -135,6 +194,50 @@ export default function DiceRoller({
       setDisplayRollValues(null);
     }
   }, [currentTurnIndex, turnOrder, communities]);
+
+  // Calculate and set dice count when a community's turn begins
+  useEffect(() => {
+    const currentCommunity = getCurrentCommunity();
+
+    if (currentCommunity) {
+      // Check if this is a new community turn (different from last tracked)
+      if (lastCommunityTurnId !== currentCommunity.id) {
+        // Calculate number of dice: 1 die per member (default)
+        let diceCount = currentCommunity.memberPlayerNames.length;
+
+        // Check for Helpless trait: +2 dice for resource rolls
+        const memberTraits = getCommunityMemberTraits(
+          currentCommunity,
+          cardPlayerAssignments,
+          pinnedCards,
+          [] // individualTraitCards not needed for this check
+        );
+        const helplessCount = memberTraits.filter(
+          (trait) => trait.displayName === "Helpless"
+        ).length;
+
+        // Each Helpless member adds +2 dice
+        diceCount += helplessCount * 2;
+
+        // Set the dice count (clamp between 1 and 20)
+        setNumDice(Math.max(1, Math.min(20, diceCount)));
+        // Track this community turn
+        setLastCommunityTurnId(currentCommunity.id);
+      }
+    } else {
+      // Not a community turn, reset tracking
+      if (lastCommunityTurnId !== null) {
+        setLastCommunityTurnId(null);
+      }
+    }
+  }, [
+    currentTurnIndex,
+    turnOrder,
+    communities,
+    lastCommunityTurnId,
+    cardPlayerAssignments,
+    pinnedCards,
+  ]);
 
   // Possible values: 0, 1, or 2
   const possibleValues = [0, 1, 2];
@@ -362,7 +465,9 @@ export default function DiceRoller({
   };
 
   const hasOnes = d6Results ? d6Results.some((val) => val === 1) : false;
-  const canRerollOnes = hasOnes && !hasRerolledOnes && !isRollingD6;
+  // Only allow reroll if it's a community turn with a Lucky member
+  const canRerollOnes =
+    hasOnes && !hasRerolledOnes && !isRollingD6 && hasCommunityLuckyMember();
 
   const currentDisplay =
     displayValue !== null ? displayValue : value !== null ? value : null;
@@ -371,6 +476,108 @@ export default function DiceRoller({
   const d6Total = currentD6Display
     ? currentD6Display.reduce((sum, val) => sum + val, 0)
     : null;
+
+  const currentCommunity = getCurrentCommunity();
+
+  // Count Cutthroat members in current community
+  const getCutthroatMemberCount = (): number => {
+    if (!currentCommunity) return 0;
+
+    const memberTraits = getCommunityMemberTraits(
+      currentCommunity,
+      cardPlayerAssignments,
+      pinnedCards,
+      [] // individualTraitCards not needed - we search pinnedCards directly
+    );
+
+    return memberTraits.filter((trait) => trait.displayName === "Cutthroat")
+      .length;
+  };
+
+  // Count Survivalist members in current community
+  const getSurvivalistMemberCount = (): number => {
+    if (!currentCommunity) return 0;
+
+    const memberTraits = getCommunityMemberTraits(
+      currentCommunity,
+      cardPlayerAssignments,
+      pinnedCards,
+      [] // individualTraitCards not needed - we search pinnedCards directly
+    );
+
+    return memberTraits.filter((trait) => trait.displayName === "Survivalist")
+      .length;
+  };
+
+  const cutthroatMemberCount = getCutthroatMemberCount();
+  const cutthroatBonus = cutthroatMemberCount * 3;
+  const survivalistMemberCount = getSurvivalistMemberCount();
+  const survivalistBonus = survivalistMemberCount;
+  const d6TotalWithBonus =
+    d6Total !== null ? d6Total + cutthroatBonus + survivalistBonus : null;
+
+  // Add D6 total to community resources
+  const handleAddToCommunity = () => {
+    if (!d6TotalWithBonus || !onCommunityResourceChange) return;
+
+    if (currentCommunity) {
+      const newResources = currentCommunity.resources + d6TotalWithBonus;
+      onCommunityResourceChange(currentCommunity.id, newResources);
+    }
+  };
+
+  const isCommunityTurn = currentCommunity !== null;
+  const canAddToCommunity =
+    isCommunityTurn &&
+    d6TotalWithBonus !== null &&
+    !isRollingD6 &&
+    onCommunityResourceChange !== undefined;
+
+  // Handle applying roll results to current player's or community's resources
+  const handleApply = () => {
+    // Check if it's a community turn
+    if (currentCommunity && onCommunityResourceChange) {
+      if (mode === "d6" && d6TotalWithBonus !== null) {
+        const newResources = currentCommunity.resources + d6TotalWithBonus;
+        onCommunityResourceChange(currentCommunity.id, newResources);
+      }
+      return;
+    }
+
+    // Otherwise it's a player turn
+    const currentPlayerName = getCurrentTurnPlayerName();
+    if (!currentPlayerName || !onPlayerResourceChange) return;
+
+    const playerIndex = playerResources.findIndex(
+      (p) => p.name === currentPlayerName
+    );
+    if (playerIndex === -1) return;
+
+    const currentPlayer = playerResources[playerIndex];
+    let rollResult: number | null = null;
+
+    if (mode === "resource") {
+      rollResult = value;
+    } else if (mode === "d6") {
+      rollResult = d6TotalWithBonus;
+    }
+
+    if (rollResult !== null) {
+      const newResources = currentPlayer.resources + rollResult;
+      onPlayerResourceChange(playerIndex, newResources);
+    }
+  };
+
+  const canApply =
+    (currentCommunity &&
+      onCommunityResourceChange &&
+      mode === "d6" &&
+      d6TotalWithBonus !== null &&
+      !isRollingD6) ||
+    (getCurrentTurnPlayerName() !== null &&
+      onPlayerResourceChange !== undefined &&
+      ((mode === "resource" && value !== null && !isRolling) ||
+        (mode === "d6" && d6TotalWithBonus !== null && !isRollingD6)));
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -480,18 +687,33 @@ export default function DiceRoller({
             </div>
           )}
 
-          {/* Roll Button */}
-          <button
-            onClick={rollResourceDice}
-            disabled={isRolling}
-            className={`w-full px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              isRolling
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-md hover:shadow-lg"
-            }`}
-          >
-            {isRolling ? "Rolling..." : "Roll Dice"}
-          </button>
+          {/* Roll Button and Apply Button */}
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={rollResourceDice}
+              disabled={isRolling}
+              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                isRolling
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-md hover:shadow-lg"
+              }`}
+            >
+              {isRolling ? "Rolling..." : "Roll Dice"}
+            </button>
+            {canApply && mode === "resource" && (
+              <button
+                onClick={handleApply}
+                disabled={isRolling}
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                  isRolling
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-green-600 text-white hover:bg-green-700 active:scale-95 shadow-md hover:shadow-lg"
+                }`}
+              >
+                Apply {value !== null ? `+${value}` : ""}
+              </button>
+            )}
+          </div>
 
           {/* Last Result */}
           {value !== null && !isRolling && (
@@ -551,6 +773,32 @@ export default function DiceRoller({
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+            {currentCommunity &&
+              (() => {
+                const memberTraits = getCommunityMemberTraits(
+                  currentCommunity,
+                  cardPlayerAssignments,
+                  pinnedCards,
+                  [] // individualTraitCards not needed for this check
+                );
+                const helplessCount = memberTraits.filter(
+                  (trait) => trait.displayName === "Helpless"
+                ).length;
+                const baseMembers = currentCommunity.memberPlayerNames.length;
+                const hasHelpless = helplessCount > 0;
+
+                return (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {baseMembers} member{baseMembers !== 1 ? "s" : ""}
+                    {hasHelpless && (
+                      <span className="text-green-600">
+                        {" "}
+                        + {helplessCount * 2} (Helpless)
+                      </span>
+                    )}
+                  </p>
+                );
+              })()}
           </div>
 
           {/* Dice Display */}
@@ -575,44 +823,97 @@ export default function DiceRoller({
                 <div className="text-center space-y-1">
                   <p className="text-sm text-gray-600">
                     Total:{" "}
-                    <span className="font-semibold text-lg">{d6Total}</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {d6Total}
+                    </span>
+                    {cutthroatBonus > 0 && (
+                      <>
+                        {" "}
+                        <span className="text-green-600 font-semibold">
+                          +{cutthroatBonus}
+                        </span>
+                        <span className="text-xs text-gray-500 ml-1">
+                          (Cutthroat)
+                        </span>
+                      </>
+                    )}
+                    {survivalistBonus > 0 && (
+                      <>
+                        {" "}
+                        <span className="text-green-600 font-semibold">
+                          +{survivalistBonus}
+                        </span>
+                        <span className="text-xs text-gray-500 ml-1">
+                          (Survivalist)
+                        </span>
+                      </>
+                    )}
+                    {d6TotalWithBonus !== null &&
+                      (cutthroatBonus > 0 || survivalistBonus > 0) && (
+                        <div className="mt-1">
+                          <span className="font-semibold text-lg">
+                            = {d6TotalWithBonus}
+                          </span>
+                        </div>
+                      )}
                   </p>
-                  {lastD6RollTurn && (
-                    <p className="text-xs text-gray-500">
-                      Last roll: ({lastD6RollTurn})
-                    </p>
-                  )}
                 </div>
               )}
             </div>
           )}
 
-          {/* Roll Button */}
-          <button
-            onClick={rollD6Dice}
-            disabled={isRollingD6 || !isValidDiceCount}
-            className={`w-full px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              isRollingD6 || !isValidDiceCount
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-md hover:shadow-lg"
-            }`}
-          >
-            {isRollingD6
-              ? "Rolling..."
-              : isValidDiceCount
-              ? `Roll ${numDice} D6`
-              : "Enter a number between 1 and 20"}
-          </button>
+          {/* Roll Button, Apply Button, and Add to Community Button */}
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={rollD6Dice}
+              disabled={isRollingD6 || !isValidDiceCount}
+              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                isRollingD6 || !isValidDiceCount
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-md hover:shadow-lg"
+              }`}
+            >
+              {isRollingD6
+                ? "Rolling..."
+                : isValidDiceCount
+                ? `Roll ${numDice} D6`
+                : "Enter a number between 1 and 20"}
+            </button>
+            {canApply && mode === "d6" && (
+              <button
+                onClick={handleApply}
+                disabled={isRollingD6}
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                  isRollingD6
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-green-600 text-white hover:bg-green-700 active:scale-95 shadow-md hover:shadow-lg"
+                }`}
+              >
+                Apply {d6TotalWithBonus !== null ? `+${d6TotalWithBonus}` : ""}
+              </button>
+            )}
+          </div>
 
-          {/* Reroll 1s Button */}
+          {/* Reroll 1s Button - only for communities with Lucky members */}
           {d6Results && canRerollOnes && (
             <button
               onClick={rerollOnes}
               disabled={isRollingD6}
               className="w-full px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-orange-600 text-white hover:bg-orange-700 active:scale-95 shadow-md hover:shadow-lg"
             >
-              Reroll 1s
+              Reroll 1s (Lucky)
             </button>
+          )}
+
+          {/* Last Roll */}
+          {d6TotalWithBonus !== null && !isRollingD6 && lastD6RollTurn && (
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-sm text-gray-600">
+                Last roll:{" "}
+                <span className="font-semibold">{d6TotalWithBonus}</span>
+                <span className="text-gray-500"> ({lastD6RollTurn})</span>
+              </p>
+            </div>
           )}
         </div>
       )}

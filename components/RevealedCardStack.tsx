@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Card as CardType } from "@/types/card";
-import { Community } from "@/types/gameState";
+import { Community, PinnedCardWithDeck } from "@/types/gameState";
 import Card from "./Card";
 import TraitEffectInfobox from "./TraitEffectInfobox";
+import { getEfficientTraitCostReduction } from "@/utils/communityTraitEffects";
 
 interface RevealedCardStackProps {
   cards: CardType[];
@@ -21,6 +22,8 @@ interface RevealedCardStackProps {
   isCreationTurn?: boolean; // Whether current turn is Creation phase
   individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
   communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
+  cardPlayerAssignments?: Map<string, string>; // Map of card keys to player names
+  pinnedCards?: PinnedCardWithDeck[]; // All pinned cards
 }
 
 export default function RevealedCardStack({
@@ -38,6 +41,8 @@ export default function RevealedCardStack({
   isCreationTurn = false,
   individualTraitCards = [],
   communityTraitCards = [],
+  cardPlayerAssignments = new Map(),
+  pinnedCards = [],
 }: RevealedCardStackProps) {
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [showTraitInfobox, setShowTraitInfobox] = useState(false);
@@ -123,7 +128,34 @@ export default function RevealedCardStack({
   // Calculate total cost for trait cards
   const getTraitCost = (card: CardType): number | null => {
     if (deckTitle === "Individual Traits") {
-      return card.traitCost ?? 5;
+      const baseCost = card.traitCost ?? 5;
+
+      // Check if it's a community's turn (Efficient only applies on community turns)
+      const isCommunityTurn =
+        currentTurnIndex !== undefined &&
+        turnOrder &&
+        turnOrder.length > 0 &&
+        communities &&
+        currentTurnIndex < turnOrder.length &&
+        turnOrder[currentTurnIndex] !== "creation" &&
+        communities.some((c) => c.id === turnOrder[currentTurnIndex]);
+
+      if (isCommunityTurn && communities) {
+        const currentTurn = turnOrder[currentTurnIndex];
+        const currentCommunity = communities.find((c) => c.id === currentTurn);
+        if (currentCommunity) {
+          // Calculate Efficient reduction
+          const reduction = getEfficientTraitCostReduction(
+            currentCommunity,
+            cardPlayerAssignments,
+            pinnedCards
+          );
+          // Apply reduction with minimum cost of 1
+          return Math.max(1, baseCost - reduction);
+        }
+      }
+
+      return baseCost;
     } else if (deckTitle === "Community Traits") {
       const baseCost = card.traitCost ?? 10;
 
@@ -142,7 +174,18 @@ export default function RevealedCardStack({
         const currentTurn = turnOrder[currentTurnIndex];
         const currentCommunity = communities.find((c) => c.id === currentTurn);
         if (currentCommunity) {
-          return baseCost + currentCommunity.memberPlayerNames.length;
+          let finalCost = baseCost + currentCommunity.memberPlayerNames.length;
+
+          // Apply Efficient reduction
+          const reduction = getEfficientTraitCostReduction(
+            currentCommunity,
+            cardPlayerAssignments,
+            pinnedCards
+          );
+          // Apply reduction with minimum cost of 1
+          finalCost = Math.max(1, finalCost - reduction);
+
+          return finalCost;
         }
       }
 
@@ -247,6 +290,8 @@ export default function RevealedCardStack({
                     communities={communities}
                     individualTraitCards={individualTraitCards}
                     communityTraitCards={communityTraitCards}
+                    cardPlayerAssignments={cardPlayerAssignments}
+                    pinnedCards={pinnedCards}
                   />
                 </div>
                 <div className="px-4 pb-4 pt-2 flex justify-center">
@@ -468,54 +513,54 @@ export default function RevealedCardStack({
                   )}
                   {deckTitle !== "Individual Traits" &&
                     deckTitle !== "Community Traits" && (
-                  <button
-                    onClick={(e) => handlePin(e, card, index)}
-                    disabled={
-                      (disabled &&
-                        (deckTitle === "Community Traits" ||
-                          deckTitle === "Individual Traits")) ||
-                      (turnAssist &&
-                        isCreationTurn &&
-                        deckTitle === "Community Traits")
-                    }
-                    className={`p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${
-                      (disabled &&
-                        (deckTitle === "Community Traits" ||
-                          deckTitle === "Individual Traits")) ||
-                      (turnAssist &&
-                        isCreationTurn &&
-                        deckTitle === "Community Traits")
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : "bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-yellow-600"
-                    }`}
-                    aria-label="Pin card"
-                    title={
-                      disabled &&
-                      (deckTitle === "Community Traits" ||
-                        deckTitle === "Individual Traits")
-                        ? deckTitle === "Community Traits"
-                          ? "Only available during community turns"
-                          : "Only available during player turns"
-                        : turnAssist &&
-                          isCreationTurn &&
-                          deckTitle === "Community Traits"
-                        ? "Not available during Creation phase"
-                        : "Pin card"
-                    }
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  </button>
+                      <button
+                        onClick={(e) => handlePin(e, card, index)}
+                        disabled={
+                          (disabled &&
+                            (deckTitle === "Community Traits" ||
+                              deckTitle === "Individual Traits")) ||
+                          (turnAssist &&
+                            isCreationTurn &&
+                            deckTitle === "Community Traits")
+                        }
+                        className={`p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${
+                          (disabled &&
+                            (deckTitle === "Community Traits" ||
+                              deckTitle === "Individual Traits")) ||
+                          (turnAssist &&
+                            isCreationTurn &&
+                            deckTitle === "Community Traits")
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-yellow-600"
+                        }`}
+                        aria-label="Pin card"
+                        title={
+                          disabled &&
+                          (deckTitle === "Community Traits" ||
+                            deckTitle === "Individual Traits")
+                            ? deckTitle === "Community Traits"
+                              ? "Only available during community turns"
+                              : "Only available during player turns"
+                            : turnAssist &&
+                              isCreationTurn &&
+                              deckTitle === "Community Traits"
+                            ? "Not available during Creation phase"
+                            : "Pin card"
+                        }
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      </button>
                     )}
                   <button
                     onClick={(e) => handleDiscard(e, card, index)}

@@ -43,7 +43,7 @@
     "id": "deck3-6",
     "displayName": "Helpless",
     "flavor": "Everyone's helpless eventually. You're just the first to admit it.",
-    "effect": "Any community you join counts as +1 member larger for all purposes.",
+    "effect": "Any community you join counts as +2 members larger for resource rolls, and +1 member larger for upkeep purposes.",
     "quantity": 5,
     "traitCost": 5
   },

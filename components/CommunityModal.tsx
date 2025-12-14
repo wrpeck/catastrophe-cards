@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Card as CardType } from "@/types/card";
+import { PinnedCardWithDeck } from "@/types/gameState";
+import { calculateCommunityUpkeepCost } from "@/utils/communityTraitEffects";
 
 interface Community {
   id: string;
@@ -28,6 +31,10 @@ interface CommunityModalProps {
   editingCommunity?: Community | null;
   playerResources: PlayerResource[];
   communityCostPerMember: number;
+  cardPlayerAssignments?: Map<string, string>;
+  pinnedCards?: PinnedCardWithDeck[];
+  individualTraitCards?: CardType[];
+  turnAssist?: boolean;
 }
 
 export default function CommunityModal({
@@ -39,6 +46,10 @@ export default function CommunityModal({
   editingCommunity,
   playerResources,
   communityCostPerMember,
+  cardPlayerAssignments = new Map(),
+  pinnedCards = [],
+  individualTraitCards = [],
+  turnAssist = true,
 }: CommunityModalProps) {
   const [name, setName] = useState("");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
@@ -48,13 +59,61 @@ export default function CommunityModal({
   );
   const [error, setError] = useState<string | null>(null);
 
+  // Check if a player has the Paranoid trait
+  const hasParanoidTrait = useCallback(
+    (playerName: string): boolean => {
+      return pinnedCards
+        .filter((card) => card.deckTitle === "Individual Traits")
+        .some((card) => {
+          const cardKey = card.pinnedId;
+          return (
+            cardPlayerAssignments.get(cardKey) === playerName &&
+            card.displayName === "Paranoid"
+          );
+        });
+    },
+    [pinnedCards, cardPlayerAssignments]
+  );
+
+  // Check if a player has the Charismatic trait
+  const hasCharismaticTrait = useCallback(
+    (playerName: string): boolean => {
+      return pinnedCards
+        .filter((card) => card.deckTitle === "Individual Traits")
+        .some((card) => {
+          const cardKey = card.pinnedId;
+          return (
+            cardPlayerAssignments.get(cardKey) === playerName &&
+            card.displayName === "Charasmatic"
+          );
+        });
+    },
+    [pinnedCards, cardPlayerAssignments]
+  );
+
   useEffect(() => {
     if (isOpen) {
       if (editingCommunity) {
         setName(editingCommunity.name);
-        setSelectedPlayers([...editingCommunity.memberPlayerNames]);
-        setOptOutPlayers(new Set());
-        setWaivedCostPlayers(new Set());
+        const members = [...editingCommunity.memberPlayerNames];
+        setSelectedPlayers(members);
+        // Automatically opt out Paranoid players
+        const paranoidOptOuts = new Set<string>();
+        members.forEach((playerName) => {
+          if (hasParanoidTrait(playerName)) {
+            paranoidOptOuts.add(playerName);
+          }
+        });
+        setOptOutPlayers(paranoidOptOuts);
+        // Automatically waive costs if any member has Charismatic
+        const hasCharismaticMember = members.some((playerName) =>
+          hasCharismaticTrait(playerName)
+        );
+        if (hasCharismaticMember) {
+          setWaivedCostPlayers(new Set(members));
+        } else {
+          setWaivedCostPlayers(new Set());
+        }
       } else {
         const nextNumber =
           existingCommunities.length > 0
@@ -72,7 +131,42 @@ export default function CommunityModal({
       }
       setError(null);
     }
-  }, [isOpen, editingCommunity, existingCommunities]);
+  }, [
+    isOpen,
+    editingCommunity,
+    existingCommunities,
+    pinnedCards,
+    cardPlayerAssignments,
+    hasParanoidTrait,
+    hasCharismaticTrait,
+  ]);
+
+  // Automatically waive costs for all players if any selected player has Charismatic trait
+  useEffect(() => {
+    // Skip if modal is not open or if we're in the initial setup phase
+    if (!isOpen) return;
+
+    if (selectedPlayers.length > 0) {
+      const hasCharismaticMember = selectedPlayers.some((playerName) =>
+        hasCharismaticTrait(playerName)
+      );
+      if (hasCharismaticMember) {
+        // If any member has Charismatic, waive cost for all selected players
+        setWaivedCostPlayers(new Set(selectedPlayers));
+      } else {
+        // If no Charismatic member and we're creating (not editing), clear waived costs
+        // When editing, we preserve the existing waived cost state unless Charismatic applies
+        if (!editingCommunity) {
+          setWaivedCostPlayers(new Set());
+        }
+      }
+    } else {
+      // No players selected, clear waived costs only when creating
+      if (!editingCommunity) {
+        setWaivedCostPlayers(new Set());
+      }
+    }
+  }, [selectedPlayers, hasCharismaticTrait, editingCommunity, isOpen]);
 
   const handlePlayerToggle = (playerName: string) => {
     if (selectedPlayers.includes(playerName)) {
@@ -90,6 +184,14 @@ export default function CommunityModal({
       });
     } else {
       setSelectedPlayers([...selectedPlayers, playerName]);
+      // Automatically opt out players with Paranoid trait
+      if (hasParanoidTrait(playerName)) {
+        setOptOutPlayers((prev) => {
+          const updated = new Set(prev);
+          updated.add(playerName);
+          return updated;
+        });
+      }
     }
     setError(null);
   };
@@ -346,24 +448,30 @@ export default function CommunityModal({
                       {/* Options for selected players */}
                       {isSelected && !isDisabled && !isExistingMember && (
                         <div className="ml-8 mb-1 space-y-1">
-                          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={waivedCostPlayers.has(playerName)}
-                              onChange={() => handleWaiveCostToggle(playerName)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span>Waive cost</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={optOutPlayers.has(playerName)}
-                              onChange={() => handleOptOutToggle(playerName)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span>Opt out of resource transfer</span>
-                          </label>
+                          {!turnAssist && (
+                            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={waivedCostPlayers.has(playerName)}
+                                onChange={() =>
+                                  handleWaiveCostToggle(playerName)
+                                }
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span>Waive cost</span>
+                            </label>
+                          )}
+                          {!turnAssist && (
+                            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={optOutPlayers.has(playerName)}
+                                onChange={() => handleOptOutToggle(playerName)}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span>Opt out of resource transfer</span>
+                            </label>
+                          )}
                         </div>
                       )}
                     </div>
@@ -426,9 +534,17 @@ export default function CommunityModal({
                 {(() => {
                   // Calculate total resources transferred
                   let totalResources = 0;
+
+                  // Check if any selected player has Charismatic trait (for cost waiver)
+                  const hasCharismaticMember = selectedPlayers.some(
+                    (playerName) => hasCharismaticTrait(playerName)
+                  );
+
                   selectedPlayers.forEach((playerName) => {
                     const playerResource = getPlayerResource(playerName);
-                    const isWaived = waivedCostPlayers.has(playerName);
+                    // Check if cost is waived: either explicitly waived OR any member has Charismatic
+                    const isWaived =
+                      waivedCostPlayers.has(playerName) || hasCharismaticMember;
                     const isOptedOut = optOutPlayers.has(playerName);
 
                     // Calculate resources after cost (if not waived)
@@ -441,8 +557,20 @@ export default function CommunityModal({
                       totalResources += resourcesAfterCost;
                     }
                   });
-                  const firstUpkeepCost =
-                    selectedPlayers.length * communityCostPerMember;
+                  // Calculate upkeep cost considering individual traits
+                  const tempCommunity: Community = {
+                    id: "temp",
+                    name: "",
+                    resources: 0,
+                    memberPlayerNames: selectedPlayers,
+                  };
+                  const firstUpkeepCost = calculateCommunityUpkeepCost(
+                    tempCommunity,
+                    communityCostPerMember,
+                    cardPlayerAssignments,
+                    pinnedCards,
+                    individualTraitCards
+                  );
                   const upkeepExceedsResources =
                     firstUpkeepCost > totalResources;
 

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Card as CardType } from "@/types/card";
-import { Community } from "@/types/gameState";
+import { Community, PinnedCardWithDeck } from "@/types/gameState";
 import RevealedCardStack from "./RevealedCardStack";
 
 interface RevealDeckProps {
@@ -29,6 +29,8 @@ interface RevealDeckProps {
   isCreationTurn?: boolean; // Whether current turn is Creation phase
   individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
   communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
+  cardPlayerAssignments?: Map<string, string>; // Map of card keys to player names
+  allPinnedCards?: PinnedCardWithDeck[]; // All pinned cards (for trait effect calculations)
 }
 
 export default function RevealDeck({
@@ -55,6 +57,8 @@ export default function RevealDeck({
   isCreationTurn,
   individualTraitCards = [],
   communityTraitCards = [],
+  cardPlayerAssignments = new Map(),
+  allPinnedCards = [],
 }: RevealDeckProps) {
   // Expose addToDiscard function to parent
   useEffect(() => {
@@ -136,6 +140,8 @@ export default function RevealDeck({
             isCreationTurn={isCreationTurn}
             individualTraitCards={individualTraitCards}
             communityTraitCards={communityTraitCards}
+            cardPlayerAssignments={cardPlayerAssignments}
+            pinnedCards={allPinnedCards}
           />
         </div>
       )}

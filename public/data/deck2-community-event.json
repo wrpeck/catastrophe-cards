@@ -161,7 +161,7 @@
     "id": "comm-20",
     "displayName": "No Waste",
     "flavor": "There are calories everywhere in the forest, if you know where to look.",
-    "effect": "Reduce Community Maintenance Cost by 1d2 next round. If you have a Self-Sufficient member, instead waive Community Maintenance cost for 1d2+1 rounds.",
+    "effect": "Reduce Community Upkeep Cost by 1d2 next round. If you have a Self-Sufficient member, instead waive Community Upkeep cost for 1d2+1 rounds.",
     "quantity": 1,
     "type": "good",
     "isTraitEffect": "Self-Sufficient"
@@ -170,7 +170,7 @@
     "id": "comm-21",
     "displayName": "Fraying Bonds",
     "flavor": "Tensions are rising and times are tough.",
-    "effect": "Double your community's maintenance cost next round. If you have an Efficient member, gain your maintenence cost instead of paying next round.",
+    "effect": "Double your Community Upkeep cost next round. If you have an Efficient member, gain your upkeep cost instead of paying next round.",
     "quantity": 1,
     "type": "mixed",
     "isTraitEffect": "Efficient"

@@ -5,6 +5,7 @@ import CommunityModal from "./CommunityModal";
 import { PinnedCardWithDeck } from "@/types/gameState";
 import { Card as CardType } from "@/types/card";
 import TraitEffectInfobox from "./TraitEffectInfobox";
+import { calculateCommunityUpkeepCost } from "@/utils/communityTraitEffects";
 
 interface Community {
   id: string;
@@ -42,9 +43,11 @@ interface CommunitiesTrackerProps {
   currentTurnIndex: number;
   turnOrder: (string | "creation")[];
   pinnedCards: PinnedCardWithDeck[];
+  cardPlayerAssignments: Map<string, string>;
   communityTraitAssignments: Map<string, string>;
   individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
   communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
+  turnAssist?: boolean;
 }
 
 export default function CommunitiesTracker({
@@ -61,9 +64,11 @@ export default function CommunitiesTracker({
   currentTurnIndex,
   turnOrder,
   pinnedCards,
+  cardPlayerAssignments,
   communityTraitAssignments,
   individualTraitCards = [],
   communityTraitCards = [],
+  turnAssist = true,
 }: CommunitiesTrackerProps) {
   const [editingCommunityId, setEditingCommunityId] = useState<string | null>(
     null
@@ -112,8 +117,13 @@ export default function CommunitiesTracker({
   const handleUpkeep = (communityId: string) => {
     const community = communities.find((c) => c.id === communityId);
     if (community) {
-      const upkeepCost =
-        community.memberPlayerNames.length * communityCostPerMember;
+      const upkeepCost = calculateCommunityUpkeepCost(
+        community,
+        communityCostPerMember,
+        cardPlayerAssignments,
+        pinnedCards,
+        individualTraitCards
+      );
       const newResources = Math.max(0, community.resources - upkeepCost);
       onResourceChange(communityId, newResources);
     }
@@ -382,9 +392,13 @@ export default function CommunitiesTracker({
                       </div>
                     </div>
                     {(() => {
-                      const upkeepCost =
-                        community.memberPlayerNames.length *
-                        communityCostPerMember;
+                      const upkeepCost = calculateCommunityUpkeepCost(
+                        community,
+                        communityCostPerMember,
+                        cardPlayerAssignments,
+                        pinnedCards,
+                        individualTraitCards
+                      );
                       const wouldGoBelowZero =
                         community.resources - upkeepCost < 0;
                       return (
@@ -481,6 +495,10 @@ export default function CommunitiesTracker({
           editingCommunity={editingCommunity}
           playerResources={playerResources}
           communityCostPerMember={communityCostPerMember}
+          cardPlayerAssignments={cardPlayerAssignments}
+          pinnedCards={pinnedCards}
+          individualTraitCards={individualTraitCards}
+          turnAssist={turnAssist}
         />
       )}
 

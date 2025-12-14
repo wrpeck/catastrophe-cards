@@ -51,6 +51,7 @@ interface PlayerTrackerProps {
   communityTraitAssignments: Map<string, string>;
   individualTraitCards?: CardType[]; // Individual trait cards for trait effect lookup
   communityTraitCards?: CardType[]; // Community trait cards for trait effect lookup
+  turnAssist?: boolean;
 }
 
 export default function PlayerTracker({
@@ -81,6 +82,7 @@ export default function PlayerTracker({
   communityTraitAssignments,
   individualTraitCards = [],
   communityTraitCards = [],
+  turnAssist = true,
 }: PlayerTrackerProps) {
   const [activeTab, setActiveTab] = useState<"players" | "communities">(
     "players"
@@ -392,9 +394,11 @@ export default function PlayerTracker({
           currentTurnIndex={currentTurnIndex}
           turnOrder={turnOrder}
           pinnedCards={pinnedCards}
+          cardPlayerAssignments={cardPlayerAssignments}
           communityTraitAssignments={communityTraitAssignments}
           individualTraitCards={individualTraitCards}
           communityTraitCards={communityTraitCards}
+          turnAssist={turnAssist}
         />
       )}
 

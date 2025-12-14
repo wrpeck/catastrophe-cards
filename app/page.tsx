@@ -2842,6 +2842,11 @@ export default function Home() {
                         communities={communities}
                         pinnedCards={pinnedCards}
                         cardPlayerAssignments={cardPlayerAssignments}
+                        onCommunityResourceChange={
+                          handleCommunityResourceChange
+                        }
+                        playerResources={playerResources}
+                        onPlayerResourceChange={handlePlayerResourceChange}
                       />
                       {!isLoadingSettings && (
                         <PlayerTracker
@@ -2878,6 +2883,7 @@ export default function Home() {
                           communityTraitAssignments={communityTraitAssignments}
                           individualTraitCards={deck3Cards}
                           communityTraitCards={deck4Cards}
+                          turnAssist={settings.turnAssist ?? true}
                         />
                       )}
                     </div>
@@ -3006,6 +3012,8 @@ export default function Home() {
                           isCreationTurn={isCreationTurn()}
                           individualTraitCards={deck3Cards}
                           communityTraitCards={deck4Cards}
+                          cardPlayerAssignments={cardPlayerAssignments}
+                          allPinnedCards={pinnedCards}
                         />
                       ),
                       communityTraits: (
@@ -3036,6 +3044,8 @@ export default function Home() {
                           isCreationTurn={isCreationTurn()}
                           individualTraitCards={deck3Cards}
                           communityTraitCards={deck4Cards}
+                          cardPlayerAssignments={cardPlayerAssignments}
+                          allPinnedCards={pinnedCards}
                         />
                       ),
                       desperateMeasures: (
@@ -3061,6 +3071,8 @@ export default function Home() {
                           isCreationTurn={isCreationTurn()}
                           individualTraitCards={deck3Cards}
                           communityTraitCards={deck4Cards}
+                          cardPlayerAssignments={cardPlayerAssignments}
+                          allPinnedCards={pinnedCards}
                         />
                       ),
                       wanderer: (
