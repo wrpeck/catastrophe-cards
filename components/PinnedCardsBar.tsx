@@ -724,7 +724,6 @@ export default function PinnedCardsBar({
             }}
             isPinned={true}
             showPinButton={true}
-            deckTitle={expandedCard.deckTitle}
             communities={communities}
             individualTraitCards={individualTraitCards}
             communityTraitCards={communityTraitCards}

@@ -1516,33 +1516,51 @@ export default function Home() {
     setCommunities(updatedCommunities);
     setNextCommunityId(nextCommunityId + 1);
 
-    // After state updates, if we were on Creation phase, move to the new community's turn
+    // After state updates, if we were on Creation phase, advance to the next turn in order
+    // Use setTimeout to ensure this runs after the useEffect that recomputes turn order
     if (isOnCreationPhase) {
-      // Compute the new turn order with the updated communities
-      // We need to check which players are in communities using the updated list
-      const playersInCommunities = new Set<string>();
-      updatedCommunities.forEach((community) => {
-        community.memberPlayerNames.forEach((name) => {
-          playersInCommunities.add(name);
+      setTimeout(() => {
+        // Compute the new turn order with the updated communities
+        const playersInCommunities = new Set<string>();
+        updatedCommunities.forEach((community) => {
+          community.memberPlayerNames.forEach((name) => {
+            playersInCommunities.add(name);
+          });
         });
-      });
 
-      const individualPlayers = playerResources.filter(
-        (player) => !playersInCommunities.has(player.name)
-      );
-      if (individualPlayers.length > 0) {
-        const newTurnOrder: (string | "creation")[] = [
-          ...individualPlayers.map((p) => p.name),
-          "creation",
-          ...updatedCommunities.map((c) => c.id),
-        ];
-        const firstCommunityIndex = newTurnOrder.findIndex(
-          (turn) => turn === newCommunity.id
+        const individualPlayers = playerResources.filter(
+          (player) => !playersInCommunities.has(player.name)
         );
-        if (firstCommunityIndex !== -1) {
-          setCurrentTurnIndex(firstCommunityIndex);
+
+        // Compute the new turn order (same logic as computeTurnOrder)
+        const newTurnOrder: (string | "creation")[] = [];
+        if (individualPlayers.length > 0) {
+          newTurnOrder.push(...individualPlayers.map((p) => p.name));
+          newTurnOrder.push("creation");
+          newTurnOrder.push(...updatedCommunities.map((c) => c.id));
+        } else {
+          // No individual players, skip Creation phase
+          newTurnOrder.push(...updatedCommunities.map((c) => c.id));
         }
-      }
+
+        // Find the index of "creation" in the new turn order
+        const creationIndex = newTurnOrder.findIndex(
+          (turn) => turn === "creation"
+        );
+        if (creationIndex !== -1) {
+          // Advance to the next turn after Creation (first community or next player)
+          const nextIndex = creationIndex + 1;
+          if (nextIndex < newTurnOrder.length) {
+            setCurrentTurnIndex(nextIndex);
+          } else if (newTurnOrder.length > 0) {
+            // Wrap around to start if we're at the end
+            setCurrentTurnIndex(0);
+          }
+        } else if (newTurnOrder.length > 0) {
+          // No creation phase, go to first turn (first community)
+          setCurrentTurnIndex(0);
+        }
+      }, 0);
     }
   };
 
@@ -1670,7 +1688,16 @@ export default function Home() {
       }
     }
 
+    // Check if the disbanded community is the current turn
+    const isCurrentTurn =
+      turnOrder.length > 0 &&
+      currentTurnIndex < turnOrder.length &&
+      turnOrder[currentTurnIndex] === communityId;
+
     setCommunities((prev) => prev.filter((c) => c.id !== communityId));
+
+    // If the disbanded community was the current turn, the useEffect will handle
+    // advancing to the next turn when it recomputes the turn order
 
     // Find all Community Traits assigned to this community and unpin them
     const communityTraitPinnedIds = new Set<string>();
@@ -2062,14 +2089,44 @@ export default function Home() {
 
     // Adjust currentTurnIndex if it's out of bounds or if all players joined communities
     setCurrentTurnIndex((prev) => {
-      // If the previous turn order had individual players and the new one doesn't,
-      // and there are communities, advance to the first community's turn
       if (
         previousTurnOrder.length > 0 &&
         newTurnOrder.length > 0 &&
         prev < previousTurnOrder.length
       ) {
         const previousTurn = previousTurnOrder[prev];
+
+        // If the previous turn was a community, check if it still exists
+        if (previousTurn !== "creation" && previousTurn !== undefined) {
+          const wasCommunity = communities.some((c) => c.id === previousTurn);
+          if (wasCommunity) {
+            // Check if this community still exists in the new turn order
+            const newIndex = newTurnOrder.findIndex(
+              (turn) => turn === previousTurn
+            );
+            if (newIndex !== -1) {
+              // Community still exists, preserve the turn
+              return newIndex;
+            }
+            // Community was disbanded or removed, advance to next turn in order
+            // Try to find the next turn from the previous order that still exists
+            let foundNext = false;
+            for (let i = prev + 1; i < previousTurnOrder.length; i++) {
+              const nextPreviousTurn = previousTurnOrder[i];
+              const nextNewIndex = newTurnOrder.findIndex(
+                (turn) => turn === nextPreviousTurn
+              );
+              if (nextNewIndex !== -1) {
+                return nextNewIndex;
+              }
+            }
+            // If no next turn found in sequence, wrap to start
+            if (newTurnOrder.length > 0) {
+              return 0;
+            }
+          }
+        }
+
         // Check if previous turn was an individual player (not "creation" and not a community ID)
         const wasIndividualPlayer =
           previousTurn !== "creation" &&
@@ -2085,6 +2142,16 @@ export default function Home() {
         if (wasIndividualPlayer && newOrderStartsWithCommunities) {
           // All players are now in communities, move to first community
           return 0;
+        }
+
+        // If previous turn was "creation", try to preserve its position
+        if (previousTurn === "creation") {
+          const creationIndex = newTurnOrder.findIndex(
+            (turn) => turn === "creation"
+          );
+          if (creationIndex !== -1) {
+            return creationIndex;
+          }
         }
       }
 
