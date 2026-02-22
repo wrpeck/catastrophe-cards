@@ -20,15 +20,15 @@ interface DiceRollerProps {
   onPlayerResourceChange?: (playerIndex: number, newValue: number) => void;
   onBlacksmithReductionChange?: (
     communityId: string,
-    reduction: number | null
+    reduction: number | null,
   ) => void;
   onSawmillReductionChange?: (
     communityId: string,
-    reduction: number | null
+    reduction: number | null,
   ) => void;
   onSchoolhouseReductionChange?: (
     communityId: string,
-    reduction: number | null
+    reduction: number | null,
   ) => void;
 }
 
@@ -60,19 +60,19 @@ export default function DiceRoller({
   // For trait effects that roll multiple dice (e.g., Survivalist)
   const [rollValues, setRollValues] = useState<number[] | null>(null);
   const [displayRollValues, setDisplayRollValues] = useState<number[] | null>(
-    null
+    null,
   );
 
   // D6 roll state
   const [numDice, setNumDice] = useState<number | null>(1);
   const [d6Results, setD6Results] = useState<number[] | null>(null);
   const [d6DisplayResults, setD6DisplayResults] = useState<number[] | null>(
-    null
+    null,
   );
   const [isRollingD6, setIsRollingD6] = useState(false);
   const [hasRerolledOnes, setHasRerolledOnes] = useState(false);
   const [rerollingIndices, setRerollingIndices] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
   const [isRerolling, setIsRerolling] = useState(false);
   const [lastD6RollTurn, setLastD6RollTurn] = useState<string | null>(null);
@@ -88,11 +88,11 @@ export default function DiceRoller({
   >(null);
   const [sawmillRoll, setSawmillRoll] = useState<number | null>(null);
   const [sawmillDisplayRoll, setSawmillDisplayRoll] = useState<number | null>(
-    null
+    null,
   );
   const [isRollingSawmill, setIsRollingSawmill] = useState(false);
   const [lastSawmillRollTurn, setLastSawmillRollTurn] = useState<string | null>(
-    null
+    null,
   );
   const [schoolhouseRoll, setSchoolhouseRoll] = useState<number | null>(null);
   const [schoolhouseDisplayRoll, setSchoolhouseDisplayRoll] = useState<
@@ -198,7 +198,7 @@ export default function DiceRoller({
       community,
       cardPlayerAssignments,
       pinnedCards,
-      [] // individualTraitCards not needed for this check
+      [], // individualTraitCards not needed for this check
     );
 
     // Check if any member has Lucky trait
@@ -207,7 +207,7 @@ export default function DiceRoller({
 
   // Track the last community turn to detect when a new community turn begins
   const [lastCommunityTurnId, setLastCommunityTurnId] = useState<string | null>(
-    null
+    null,
   );
 
   // Check if current turn is a community (helper function)
@@ -241,7 +241,7 @@ export default function DiceRoller({
       // Clear Blacksmith reduction for previous community before resetting state
       if (onBlacksmithReductionChange) {
         const previousCommunity = communities.find(
-          (c) => c.name === lastBlacksmithRollTurn
+          (c) => c.name === lastBlacksmithRollTurn,
         );
         if (previousCommunity) {
           onBlacksmithReductionChange(previousCommunity.id, null);
@@ -255,7 +255,7 @@ export default function DiceRoller({
       // Clear Sawmill reduction for previous community before resetting state
       if (onSawmillReductionChange) {
         const previousCommunity = communities.find(
-          (c) => c.name === lastSawmillRollTurn
+          (c) => c.name === lastSawmillRollTurn,
         );
         if (previousCommunity) {
           onSawmillReductionChange(previousCommunity.id, null);
@@ -272,7 +272,7 @@ export default function DiceRoller({
       // Clear Schoolhouse reduction for previous community before resetting state
       if (onSchoolhouseReductionChange) {
         const previousCommunity = communities.find(
-          (c) => c.name === lastSchoolhouseRollTurn
+          (c) => c.name === lastSchoolhouseRollTurn,
         );
         if (previousCommunity) {
           onSchoolhouseReductionChange(previousCommunity.id, null);
@@ -298,10 +298,10 @@ export default function DiceRoller({
           currentCommunity,
           cardPlayerAssignments,
           pinnedCards,
-          [] // individualTraitCards not needed for this check
+          [], // individualTraitCards not needed for this check
         );
         const helplessCount = memberTraits.filter(
-          (trait) => trait.displayName === "Helpless"
+          (trait) => trait.displayName === "Helpless",
         ).length;
 
         // Each Helpless member adds +2 dice
@@ -325,10 +325,10 @@ export default function DiceRoller({
           currentCommunity,
           cardPlayerAssignments,
           pinnedCards,
-          []
+          [],
         );
         const helplessCount = memberTraits.filter(
-          (trait) => trait.displayName === "Helpless"
+          (trait) => trait.displayName === "Helpless",
         ).length;
 
         diceCount += helplessCount * 2;
@@ -356,8 +356,8 @@ export default function DiceRoller({
     communityTraitAssignments,
   ]);
 
-  // Possible values: 0, 1, or 2
-  const possibleValues = [0, 1, 2];
+  // Possible values: 1, 2, or 3
+  const possibleValues = [1, 2, 3];
 
   const rollResourceDice = () => {
     if (isRolling) return;
@@ -430,7 +430,7 @@ export default function DiceRoller({
 
   const rerollResourceDice = () => {
     if (isRolling || hasRerolledThisTurn || value === null) return;
-    if (value !== 0 && value !== 1) return; // Only allow reroll for 0 or 1
+    if (value !== 1) return; // Only allow reroll for 1
     if (!hasLuckyTrait()) return; // Only allow if player has Lucky trait
 
     setIsRolling(true);
@@ -516,7 +516,7 @@ export default function DiceRoller({
       // Show random values during animation
       const randomResults = Array.from(
         { length: totalDice },
-        () => Math.floor(Math.random() * 6) + 1
+        () => Math.floor(Math.random() * 6) + 1,
       );
       setD6DisplayResults(randomResults);
       currentUpdate++;
@@ -526,7 +526,7 @@ export default function DiceRoller({
         // Final roll
         const finalResults = Array.from(
           { length: totalDice },
-          () => Math.floor(Math.random() * 6) + 1
+          () => Math.floor(Math.random() * 6) + 1,
         );
         setD6Results(finalResults);
         setD6DisplayResults(finalResults);
@@ -607,7 +607,7 @@ export default function DiceRoller({
       currentCommunity,
       cardPlayerAssignments,
       pinnedCards,
-      [] // individualTraitCards not needed - we search pinnedCards directly
+      [], // individualTraitCards not needed - we search pinnedCards directly
     );
 
     return memberTraits.filter((trait) => trait.displayName === "Cutthroat")
@@ -622,7 +622,7 @@ export default function DiceRoller({
       currentCommunity,
       cardPlayerAssignments,
       pinnedCards,
-      [] // individualTraitCards not needed - we search pinnedCards directly
+      [], // individualTraitCards not needed - we search pinnedCards directly
     );
 
     return memberTraits.filter((trait) => trait.displayName === "Survivalist")
@@ -645,10 +645,10 @@ export default function DiceRoller({
         if (assignedCommunityId !== currentCommunity.id) return false;
         const pinnedCard = pinnedCards.find(
           (card) =>
-            card.pinnedId === pinnedId && card.deckTitle === "Community Traits"
+            card.pinnedId === pinnedId && card.deckTitle === "Community Traits",
         );
         return pinnedCard?.displayName === "Blacksmith";
-      }
+      },
     );
   };
 
@@ -661,10 +661,10 @@ export default function DiceRoller({
         if (assignedCommunityId !== currentCommunity.id) return false;
         const pinnedCard = pinnedCards.find(
           (card) =>
-            card.pinnedId === pinnedId && card.deckTitle === "Community Traits"
+            card.pinnedId === pinnedId && card.deckTitle === "Community Traits",
         );
         return pinnedCard?.displayName === "Sawmill";
-      }
+      },
     );
   };
 
@@ -677,10 +677,10 @@ export default function DiceRoller({
         if (assignedCommunityId !== currentCommunity.id) return false;
         const pinnedCard = pinnedCards.find(
           (card) =>
-            card.pinnedId === pinnedId && card.deckTitle === "Community Traits"
+            card.pinnedId === pinnedId && card.deckTitle === "Community Traits",
         );
         return pinnedCard?.displayName === "Agriculture";
-      }
+      },
     );
   };
 
@@ -693,10 +693,10 @@ export default function DiceRoller({
         if (assignedCommunityId !== currentCommunity.id) return false;
         const pinnedCard = pinnedCards.find(
           (card) =>
-            card.pinnedId === pinnedId && card.deckTitle === "Community Traits"
+            card.pinnedId === pinnedId && card.deckTitle === "Community Traits",
         );
         return pinnedCard?.displayName === "Schoolhouse";
-      }
+      },
     );
   };
 
@@ -908,7 +908,7 @@ export default function DiceRoller({
     if (!currentPlayerName || !onPlayerResourceChange) return;
 
     const playerIndex = playerResources.findIndex(
-      (p) => p.name === currentPlayerName
+      (p) => p.name === currentPlayerName,
     );
     if (playerIndex === -1) return;
 
@@ -999,8 +999,8 @@ export default function DiceRoller({
                   {displayRollValues
                     ? displayRollValues[0]
                     : rollValues
-                    ? rollValues[0]
-                    : "?"}
+                      ? rollValues[0]
+                      : "?"}
                 </span>
               </div>
               <div className="text-lg font-bold text-gray-600 shrink-0">+</div>
@@ -1013,8 +1013,8 @@ export default function DiceRoller({
                   {displayRollValues
                     ? displayRollValues[1]
                     : rollValues
-                    ? rollValues[1]
-                    : "?"}
+                      ? rollValues[1]
+                      : "?"}
                 </span>
               </div>
               <div className="text-lg font-bold text-gray-600 shrink-0">→</div>
@@ -1026,8 +1026,8 @@ export default function DiceRoller({
                   {displayRollValues
                     ? Math.max(displayRollValues[0], displayRollValues[1])
                     : rollValues
-                    ? Math.max(rollValues[0], rollValues[1])
-                    : "?"}
+                      ? Math.max(rollValues[0], rollValues[1])
+                      : "?"}
                 </span>
               </div>
               <div className="text-lg font-bold text-gray-600 shrink-0">+1</div>
@@ -1105,7 +1105,7 @@ export default function DiceRoller({
           {/* Reroll Button for Lucky trait */}
           {value !== null &&
             !isRolling &&
-            (value === 0 || value === 1) &&
+            value === 1 &&
             hasLuckyTrait() &&
             !hasRerolledThisTurn && (
               <button
@@ -1148,10 +1148,10 @@ export default function DiceRoller({
                   currentCommunity,
                   cardPlayerAssignments,
                   pinnedCards,
-                  [] // individualTraitCards not needed for this check
+                  [], // individualTraitCards not needed for this check
                 );
                 const helplessCount = memberTraits.filter(
-                  (trait) => trait.displayName === "Helpless"
+                  (trait) => trait.displayName === "Helpless",
                 ).length;
                 const baseMembers = currentCommunity.memberPlayerNames.length;
                 const hasHelpless = helplessCount > 0;
@@ -1260,8 +1260,8 @@ export default function DiceRoller({
               {isRollingD6
                 ? "Rolling..."
                 : isValidDiceCount
-                ? `Roll ${numDice} D6`
-                : "Enter a number between 1 and 20"}
+                  ? `Roll ${numDice} D6`
+                  : "Enter a number between 1 and 20"}
             </button>
             {canApply && mode === "d6" && (
               <button
