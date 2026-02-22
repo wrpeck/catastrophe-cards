@@ -65,6 +65,8 @@ export default function Home() {
     civilizationPointCost: 10,
     extinctionPointCost: 10,
     extinctionCompromise: 5,
+    individualEventDifficulty: "easy",
+    communityEventDifficulty: "easy",
   });
   const [playerResources, setPlayerResources] = useState<PlayerResource[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -132,6 +134,13 @@ export default function Home() {
   const [deck5Cards, setDeck5Cards] = useState<CardType[]>([]);
   const [deck6Cards, setDeck6Cards] = useState<CardType[]>([]);
   const [isNewGameStarted, setIsNewGameStarted] = useState(false);
+  // Track initial difficulty values for change detection
+  const [
+    initialIndividualEventDifficulty,
+    setInitialIndividualEventDifficulty,
+  ] = useState<"easy" | "medium" | "hard">("easy");
+  const [initialCommunityEventDifficulty, setInitialCommunityEventDifficulty] =
+    useState<"easy" | "medium" | "hard">("easy");
 
   // Deck states
   const [deck1State, setDeck1State] = useState<DeckState>({
@@ -205,8 +214,19 @@ export default function Home() {
             civilizationPointCost: loadedSettings.civilizationPointCost ?? 10,
             extinctionPointCost: loadedSettings.extinctionPointCost ?? 10,
             extinctionCompromise: loadedSettings.extinctionCompromise ?? 5,
+            individualEventDifficulty:
+              loadedSettings.individualEventDifficulty ?? "easy",
+            communityEventDifficulty:
+              loadedSettings.communityEventDifficulty ?? "easy",
           };
           setSettings(settingsWithDefaults);
+          // Initialize difficulty tracking with loaded settings
+          setInitialIndividualEventDifficulty(
+            settingsWithDefaults.individualEventDifficulty ?? "easy"
+          );
+          setInitialCommunityEventDifficulty(
+            settingsWithDefaults.communityEventDifficulty ?? "easy"
+          );
           const savedResources: PlayerResource[] =
             settingsWithDefaults.players.map((player) => {
               const existing = savedState.playerResources.find(
@@ -234,8 +254,17 @@ export default function Home() {
           civilizationPointCost: data.civilizationPointCost ?? 10,
           extinctionPointCost: data.extinctionPointCost ?? 10,
           extinctionCompromise: data.extinctionCompromise ?? 5,
+          individualEventDifficulty: data.individualEventDifficulty ?? "easy",
+          communityEventDifficulty: data.communityEventDifficulty ?? "easy",
         };
         setSettings(settingsWithDefaults);
+        // Initialize difficulty tracking with loaded settings
+        setInitialIndividualEventDifficulty(
+          settingsWithDefaults.individualEventDifficulty ?? "easy"
+        );
+        setInitialCommunityEventDifficulty(
+          settingsWithDefaults.communityEventDifficulty ?? "easy"
+        );
         const initialResources: PlayerResource[] =
           settingsWithDefaults.players.map((player) => ({
             name: player.name,
@@ -272,13 +301,32 @@ export default function Home() {
   }, []);
 
   // Load deck cards
+  // Helper function to get deck filename based on difficulty
+  const getIndividualEventDeckFile = (
+    difficulty: "easy" | "medium" | "hard" = "easy"
+  ) => {
+    const suffix = difficulty === "easy" ? "" : `-${difficulty}`;
+    return `/data/deck1-individual-event${suffix}.json`;
+  };
+
+  const getCommunityEventDeckFile = (
+    difficulty: "easy" | "medium" | "hard" = "easy"
+  ) => {
+    const suffix = difficulty === "easy" ? "" : `-${difficulty}`;
+    return `/data/deck2-community-event${suffix}.json`;
+  };
+
   useEffect(() => {
     async function loadDeck1() {
       try {
-        const response = await fetch("/data/deck1-individual-event.json");
+        // Use difficulty setting, default to "easy" for initial load
+        const difficulty = settings.individualEventDifficulty ?? "easy";
+        const deckFile = getIndividualEventDeckFile(difficulty);
+        const response = await fetch(deckFile);
         const data: CardType[] = await response.json();
         setDeck1Cards(data);
-        if (deck1State.availableCards.length === 0) {
+        // Only initialize deck state if it's empty or if a new game was just started
+        if (deck1State.availableCards.length === 0 || isNewGameStarted) {
           setDeck1State({
             availableCards: initializeCardPool(data),
             revealedCards: [],
@@ -291,15 +339,19 @@ export default function Home() {
       }
     }
     loadDeck1();
-  }, []);
+  }, [settings.individualEventDifficulty, isNewGameStarted]);
 
   useEffect(() => {
     async function loadDeck2() {
       try {
-        const response = await fetch("/data/deck2-community-event.json");
+        // Use difficulty setting, default to "easy" for initial load
+        const difficulty = settings.communityEventDifficulty ?? "easy";
+        const deckFile = getCommunityEventDeckFile(difficulty);
+        const response = await fetch(deckFile);
         const data: CardType[] = await response.json();
         setDeck2Cards(data);
-        if (deck2State.availableCards.length === 0) {
+        // Only initialize deck state if it's empty or if a new game was just started
+        if (deck2State.availableCards.length === 0 || isNewGameStarted) {
           setDeck2State({
             availableCards: initializeCardPool(data),
             revealedCards: [],
@@ -312,7 +364,7 @@ export default function Home() {
       }
     }
     loadDeck2();
-  }, []);
+  }, [settings.communityEventDifficulty, isNewGameStarted]);
 
   useEffect(() => {
     async function loadDeck3() {
@@ -2654,8 +2706,19 @@ export default function Home() {
         civilizationPointCost: loadedSettings.civilizationPointCost ?? 10,
         extinctionPointCost: loadedSettings.extinctionPointCost ?? 10,
         extinctionCompromise: loadedSettings.extinctionCompromise ?? 5,
+        individualEventDifficulty:
+          loadedSettings.individualEventDifficulty ?? "easy",
+        communityEventDifficulty:
+          loadedSettings.communityEventDifficulty ?? "easy",
       };
       setSettings(settingsWithDefaults);
+      // Set initial difficulty values from restored game state
+      setInitialIndividualEventDifficulty(
+        settingsWithDefaults.individualEventDifficulty ?? "easy"
+      );
+      setInitialCommunityEventDifficulty(
+        settingsWithDefaults.communityEventDifficulty ?? "easy"
+      );
     }
     setExtinctionValue(state.extinctionValue);
     setCivilizationValue(state.civilizationValue);
@@ -2830,16 +2893,19 @@ export default function Home() {
     setActiveDeckTab("individualEvent");
     setIsLoadingSettings(false); // Allow UI to render after dismissing
     setShowLoadPrompt(false);
-
-    // Reset the flag after a short delay to allow cards to load
-    setTimeout(() => {
-      setIsNewGameStarted(false);
-    }, 1000);
-  }, [deck1Cards, deck2Cards, deck3Cards, deck4Cards, deck5Cards]);
+  }, []);
 
   const handleNewGame = useCallback(() => {
     // Mark that a new game has started
     setIsNewGameStarted(true);
+
+    // Update initial difficulty values to current settings (for change detection)
+    setInitialIndividualEventDifficulty(
+      settings.individualEventDifficulty ?? "easy"
+    );
+    setInitialCommunityEventDifficulty(
+      settings.communityEventDifficulty ?? "easy"
+    );
 
     // Reset all game state to initial values
     setExtinctionValue(0);
@@ -3125,6 +3191,12 @@ export default function Home() {
                           onNewGame={handleNewGame}
                           settings={settings}
                           onSettingsChange={handleSettingsChange}
+                          initialIndividualEventDifficulty={
+                            initialIndividualEventDifficulty
+                          }
+                          initialCommunityEventDifficulty={
+                            initialCommunityEventDifficulty
+                          }
                           currentTurnIndex={currentTurnIndex}
                           turnOrder={turnOrder}
                           onTurnIncrement={handleTurnIncrement}
@@ -3148,7 +3220,9 @@ export default function Home() {
                       individualEvent: (
                         <DrawDeck
                           title="Individual Event"
-                          dataFile="/data/deck1-individual-event.json"
+                          dataFile={getIndividualEventDeckFile(
+                            settings.individualEventDifficulty ?? "easy"
+                          )}
                           availableCards={deck1State.availableCards}
                           drawnCard={deck1State.drawnCard}
                           onDraw={handleDeck1Draw}
@@ -3165,7 +3239,9 @@ export default function Home() {
                       communityEvent: (
                         <DrawDeck
                           title="Community Event"
-                          dataFile="/data/deck2-community-event.json"
+                          dataFile={getCommunityEventDeckFile(
+                            settings.communityEventDifficulty ?? "easy"
+                          )}
                           availableCards={deck2State.availableCards}
                           drawnCard={deck2State.drawnCard}
                           onDraw={handleDeck2Draw}

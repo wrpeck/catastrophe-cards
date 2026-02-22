@@ -39,6 +39,8 @@ interface CountersContentProps {
   onNewGame: () => void;
   settings: Settings;
   onSettingsChange: (settings: Settings) => void;
+  initialIndividualEventDifficulty?: "easy" | "medium" | "hard";
+  initialCommunityEventDifficulty?: "easy" | "medium" | "hard";
   currentTurnIndex: number;
   turnOrder: (string | "creation")[];
   onTurnIncrement: () => void;
@@ -83,6 +85,8 @@ export default function CountersContent({
   onNewGame,
   settings,
   onSettingsChange,
+  initialIndividualEventDifficulty,
+  initialCommunityEventDifficulty,
   currentTurnIndex,
   turnOrder,
   onTurnIncrement,
@@ -245,6 +249,8 @@ export default function CountersContent({
           <SettingsEditor
             settings={settings}
             onSettingsChange={onSettingsChange}
+            initialIndividualEventDifficulty={initialIndividualEventDifficulty}
+            initialCommunityEventDifficulty={initialCommunityEventDifficulty}
           />
           <SaveLoadControls
             gameState={gameState}

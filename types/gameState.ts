@@ -34,6 +34,8 @@ export interface Settings {
   civilizationPointCost: number; // Cost per civilization point
   extinctionPointCost: number; // Cost per extinction point
   extinctionCompromise: number; // Resources gained from compromise
+  individualEventDifficulty?: "easy" | "medium" | "hard"; // Difficulty level for Individual Event deck
+  communityEventDifficulty?: "easy" | "medium" | "hard"; // Difficulty level for Community Event deck
 }
 
 export interface GameState {

@@ -13,17 +13,31 @@ const BACKGROUND_OPTIONS = [
 interface SettingsEditorProps {
   settings: Settings;
   onSettingsChange: (settings: Settings) => void;
+  initialIndividualEventDifficulty?: "easy" | "medium" | "hard";
+  initialCommunityEventDifficulty?: "easy" | "medium" | "hard";
 }
 
 export default function SettingsEditor({
   settings,
   onSettingsChange,
+  initialIndividualEventDifficulty,
+  initialCommunityEventDifficulty,
 }: SettingsEditorProps) {
   const [localSettings, setLocalSettings] = useState<Settings>(settings);
   const [hasChanges, setHasChanges] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string>(
     "background-smoke.png"
   );
+
+  // Track if difficulties have been changed from initial values
+  const individualDifficultyChanged =
+    initialIndividualEventDifficulty !== undefined &&
+    (localSettings.individualEventDifficulty ?? "easy") !==
+      initialIndividualEventDifficulty;
+  const communityDifficultyChanged =
+    initialCommunityEventDifficulty !== undefined &&
+    (localSettings.communityEventDifficulty ?? "easy") !==
+      initialCommunityEventDifficulty;
 
   // Sync localSettings when settings prop changes
   useEffect(() => {
@@ -257,6 +271,82 @@ export default function SettingsEditor({
             }}
             className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+
+        {/* Event Deck Difficulty Settings */}
+        <div className="border-t border-gray-200 pt-3 mt-3">
+          <h4 className="text-xs font-semibold text-gray-900 mb-2">
+            Event Deck Difficulty
+          </h4>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Individual Event Difficulty
+              </label>
+              <select
+                value={localSettings.individualEventDifficulty ?? "easy"}
+                onChange={(e) => {
+                  const updated = {
+                    ...localSettings,
+                    individualEventDifficulty: e.target.value as
+                      | "easy"
+                      | "medium"
+                      | "hard",
+                  };
+                  setLocalSettings(updated);
+                  setHasChanges(true);
+                  onSettingsChange(updated);
+                }}
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+              {individualDifficultyChanged && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mt-2">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Note:</strong> Difficulty changes will only take
+                    effect when you start a new game.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Community Event Difficulty
+              </label>
+              <select
+                value={localSettings.communityEventDifficulty ?? "easy"}
+                onChange={(e) => {
+                  const updated = {
+                    ...localSettings,
+                    communityEventDifficulty: e.target.value as
+                      | "easy"
+                      | "medium"
+                      | "hard",
+                  };
+                  setLocalSettings(updated);
+                  setHasChanges(true);
+                  onSettingsChange(updated);
+                }}
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+              {communityDifficultyChanged && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mt-2">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Note:</strong> Difficulty changes will only take
+                    effect when you start a new game.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div>
